@@ -1,0 +1,120 @@
+{
+  "projectType": "cli-tool",
+  "projectName": "PsySH",
+  "projectDescription": "A runtime developer console, interactive debugger and REPL for PHP",
+  "theme": "aspen",
+  "primaryColor": "#8B5CF6",
+  "lightColor": "#A78BFA",
+  "darkColor": "#7C3AED",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Usage Guide",
+            "pages": [
+              "usage/repl-basics",
+              "usage/magic-variables",
+              "usage/history",
+              "usage/debugging"
+            ]
+          },
+          {
+            "group": "Commands",
+            "pages": [
+              "commands/overview",
+              "commands/doc",
+              "commands/show",
+              "commands/ls",
+              "commands/dump",
+              "commands/history",
+              "commands/edit",
+              "commands/wtf",
+              "commands/trace",
+              "commands/whereami",
+              "commands/other"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/overview",
+              "configuration/options",
+              "configuration/themes",
+              "configuration/sample"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "advanced/integrations",
+              "advanced/shell-integration",
+              "advanced/php-manual",
+              "advanced/project-trust",
+              "advanced/troubleshooting"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Core Classes",
+            "pages": [
+              "api/shell",
+              "api/configuration",
+              "api/context"
+            ]
+          },
+          {
+            "group": "Functions",
+            "pages": [
+              "api/functions"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Interactive PHP REPL",
+    "Code introspection and reflection",
+    "Built-in debugging with \\Psy\\debug()",
+    "Tab completion and readline support",
+    "Command-line interface with 15+ built-in commands",
+    "Configurable themes and color schemes",
+    "History management with persistent storage",
+    "PHP manual integration",
+    "Project trust system for security",
+    "Shell integration capabilities"
+  ],
+  "publicApiSurface": [
+    "bin/psysh",
+    "\\Psy\\Shell",
+    "\\Psy\\Configuration",
+    "\\Psy\\debug()",
+    "\\Psy\\sh()",
+    "doc command",
+    "show command",
+    "ls command",
+    "dump command",
+    "history command",
+    "edit command",
+    "wtf command",
+    "trace command",
+    "whereami command",
+    "help command",
+    "exit command",
+    "clear command"
+  ]
+}
