@@ -283,29 +283,244 @@ $ clear && psysh
 
 ## Additional Utility Commands
 
-While not as commonly used, PsySH includes several other utility commands:
+PsySH includes several additional commands for advanced use cases:
 
 ### sudo Command
 
-Re-run the last command as a different user (when permission is available).
+Execute PHP code while bypassing visibility restrictions (private/protected access).
+
+#### Syntax
 
 ```php
->>> sudo
+sudo <code>
 ```
 
-<Warning>
-  This is rarely needed in typical PsySH usage and requires specific system permissions.
-</Warning>
+#### Usage
+
+```php
+>>> class Secret {
+...     private function whisper() { return "secret"; }
+... }
+>>> $s = new Secret()
+>>> $s->whisper()
+PHP error: Call to private method Secret::whisper()
+
+>>> sudo $s->whisper()
+=> "secret"
+```
+
+The `sudo` command rewrites your code to bypass PHP's visibility restrictions, allowing you to call private and protected methods or access private and protected properties.
+
+<Note>
+  This is useful for debugging and testing, but should not be used in production code.
+</Note>
+
+---
+
+### buffer Command
+
+Show or clear the contents of the code input buffer.
+
+#### Syntax
+
+```php
+buffer [--clear]
+```
+
+#### Alias
+
+- `buf`
+
+#### Options
+
+<ParamField path="--clear" type="flag">
+  Clear the current code buffer
+</ParamField>
+
+#### Usage
+
+Show the current buffer (useful when writing multi-line code):
+
+```php
+>>> function test() {
+... 
+>>> buffer
+  1: function test() {
+```
+
+Clear the buffer:
+
+```php
+>>> function test() {
+... 
+>>> buffer --clear
+  1: function test() {
+>>> # Buffer cleared
+```
+
+---
 
 ### parse Command
 
-Parse PHP code and show the abstract syntax tree (AST).
+Parse PHP code and display the abstract syntax tree (AST).
+
+#### Syntax
 
 ```php
->>> parse $code
+parse <code>
 ```
 
-Useful for understanding how PHP parses your code.
+#### Usage
+
+```php
+>>> parse echo "hello"
+=> [
+     PhpParser\Node\Stmt\Echo_ {
+       exprs: [
+         PhpParser\Node\Scalar\String_ {
+           value: "hello",
+         },
+       ],
+     },
+   ]
+```
+
+This command is useful for understanding how PHP's parser interprets your code. It uses the nikic/php-parser library internally.
+
+<Tip>
+  Use `parse` to debug complex expressions or understand operator precedence.
+</Tip>
+
+---
+
+### timeit Command
+
+Profile code execution time.
+
+#### Syntax
+
+```php
+timeit [-n|--num <iterations>] <code>
+```
+
+#### Options
+
+<ParamField path="-n, --num" type="integer">
+  Number of iterations to run (default: 1)
+</ParamField>
+
+#### Usage
+
+Time a single execution:
+
+```php
+>>> timeit sleep(1)
+Command took 1.000234 seconds to complete.
+```
+
+Run multiple iterations to get average timing:
+
+```php
+>>> timeit -n1000 md5('test')
+Command took 0.000023 seconds on average (0.000022 median; 0.023456 total) to complete.
+```
+
+<Tip>
+  Use `timeit -n` with a high iteration count to get accurate performance measurements for fast operations.
+</Tip>
+
+---
+
+### version Command
+
+Display the current PsySH version.
+
+#### Syntax
+
+```php
+version
+```
+
+#### Usage
+
+```php
+>>> version
+Psy Shell v0.12.20 (PHP 8.2.0 — cli) by Justin Hileman
+```
+
+---
+
+### throw-up Command
+
+Throw an exception or error out of the PsySH shell.
+
+#### Syntax
+
+```php
+throw-up [exception]
+```
+
+#### Usage
+
+Throw the last exception:
+
+```php
+>>> throw new Exception("test")
+Exception: test
+
+>>> throw-up
+# Exception is thrown outside of PsySH
+```
+
+Throw a new exception:
+
+```php
+>>> throw-up new RuntimeException("error")
+# RuntimeException is thrown outside of PsySH
+```
+
+Throw with a string message:
+
+```php
+>>> throw-up "Something went wrong!"
+# Exception with message is thrown
+```
+
+<Warning>
+  This command exits PsySH and throws the exception to the calling code. Use it when you want to propagate an error out of a debug session.
+</Warning>
+
+---
+
+### yolo Command
+
+Execute code while bypassing reloader safety checks.
+
+#### Syntax
+
+```php
+yolo <code>
+yolo !!
+```
+
+#### Usage
+
+When the reloader shows warnings about conditionally defined functions or other risky operations, use `yolo` to force execution:
+
+```php
+>>> if ($condition) { function helper() {} }
+Warning: Skipped conditional: if (...) { function helper() ... }
+
+>>> yolo !!
+=> null
+# Code executed despite warning
+```
+
+The `!!` syntax repeats the last command (like in bash).
+
+<Note>
+  The "reloader" is PsySH's feature that allows you to re-define functions and classes. Use `yolo` when you understand the risks and want to proceed anyway.
+</Note>
 
 ---
 
