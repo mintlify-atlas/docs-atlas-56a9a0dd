@@ -1,0 +1,308 @@
+---
+title: Magic Variables
+description: Special variables automatically available in the PsySH REPL
+---
+
+PsySH provides several magic variables that give you access to previous results, exceptions, output, and more.
+
+## Core Magic Variables
+
+### `$_` - Last Return Value
+
+The `$_` variable holds the return value of the most recently executed statement:
+
+```php
+>>> 2 + 2
+=> 4
+>>> $_
+=> 4
+>>> $_ * 10
+=> 40
+```
+
+<Tip>
+  This is incredibly useful for chaining operations without assigning temporary variables.
+</Tip>
+
+### `$_e` - Last Exception
+
+The `$_e` variable contains the most recent exception or error:
+
+```php
+>>> throw new RuntimeException('Oops!')
+
+  RuntimeException with message 'Oops!'
+
+>>> $_e
+=> RuntimeException {
+     +message: "Oops!",
+     +code: 0,
+     +file: "eval()'d code",
+     +line: 1,
+     ...
+   }
+>>> $_e->getMessage()
+=> "Oops!"
+>>> $_e->getTraceAsString()
+```
+
+<Note>
+  `$_e` is only available after an exception has been thrown. Accessing it before will result in an error.
+</Note>
+
+### `$__out` - Last Standard Output
+
+The `$__out` variable captures the output from the most recent statement:
+
+```php
+>>> echo "Hello, World!\n"
+Hello, World!
+>>> $__out
+=> "Hello, World!\n"
+>>> echo "Debug: " . $__out
+Debug: Hello, World!
+```
+
+<Accordion title="When is $__out updated?">
+  `$__out` is updated whenever code prints to standard output using `echo`, `print`, `var_dump()`, etc. It captures all output from a single statement execution.
+</Accordion>
+
+## Context Variables
+
+### `$this` - Bound Object
+
+When debugging within an object context, `$this` refers to the bound object:
+
+```php
+class User {
+    private $name = 'Alice';
+    
+    public function debug() {
+        \Psy\debug(get_defined_vars(), $this);
+    }
+}
+
+$user = new User();
+$user->debug();
+// Inside PsySH:
+>>> $this->name
+=> "Alice"
+```
+
+<Note>
+  `$this` is only available when PsySH is started with a bound object context. See the [Debugging guide](/usage/debugging) for more details.
+</Note>
+
+## Command Scope Variables
+
+These variables provide metadata about the current execution context, similar to PHP's magic constants:
+
+### `$__class`
+
+The current class name:
+
+```php
+>>> class MyClass {}
+>>> $__class
+=> "MyClass"
+```
+
+### `$__namespace`
+
+The current namespace:
+
+```php
+>>> namespace App\Services;
+>>> $__namespace
+=> "App\\Services"
+```
+
+### `$__file`
+
+The current file path:
+
+```php
+>>> $__file
+=> "/path/to/current/file.php"
+```
+
+### `$__line`
+
+The current line number:
+
+```php
+>>> $__line
+=> 42
+```
+
+### `$__dir`
+
+The directory of the current file:
+
+```php
+>>> $__dir
+=> "/path/to/current"
+```
+
+### `$__function`
+
+The current function name:
+
+```php
+>>> function myFunction() { \Psy\debug(); }
+>>> myFunction();
+// Inside PsySH:
+>>> $__function
+=> "myFunction"
+```
+
+### `$__method`
+
+The current method name:
+
+```php
+>>> class Test {
+...     public function myMethod() { \Psy\debug(); }
+... }
+>>> (new Test())->myMethod();
+// Inside PsySH:
+>>> $__method
+=> "Test::myMethod"
+```
+
+<Warning>
+  Command scope variables are only set when using certain commands like `whereami` or when debugging from specific contexts. They may not always be available.
+</Warning>
+
+## Practical Examples
+
+### Chaining Operations
+
+Use `$_` to build up complex operations:
+
+```php
+>>> json_decode('{"users": [{"name": "Alice"}, {"name": "Bob"}]}')
+=> {
+     +users: [
+       {
+         +name: "Alice",
+       },
+       {
+         +name: "Bob",
+       },
+     ],
+   }
+>>> $_->users
+=> [
+     {
+       +name: "Alice",
+     },
+     {
+       +name: "Bob",
+     },
+   ]
+>>> $_[0]->name
+=> "Alice"
+```
+
+### Debugging Exceptions
+
+Examine exceptions in detail:
+
+```php
+>>> $data = [];
+>>> $data['missing']['key']
+
+  Warning: Undefined array key "missing"
+
+>>> $_e
+=> ErrorException {
+     +message: "Undefined array key \"missing\"",
+     +severity: E_WARNING,
+     ...
+   }
+>>> $_e->getSeverity() === E_WARNING
+=> true
+```
+
+### Capturing Output for Testing
+
+Use `$__out` to verify output:
+
+```php
+>>> function greet($name) {
+...     echo "Hello, {$name}!";
+... }
+>>> greet('World')
+Hello, World!
+>>> assert($__out === 'Hello, World!')
+=> true
+```
+
+## Variable Scope
+
+### Setting Variables
+
+Variables you define persist throughout the session:
+
+```php
+>>> $config = ['debug' => true, 'env' => 'dev']
+=> [
+     "debug" => true,
+     "env" => "dev",
+   ]
+>>> $config['debug']
+=> true
+```
+
+### Viewing All Variables
+
+Use the `ls` command to see all defined variables:
+
+```php
+>>> ls -v
+Variables:
+  $_       int             4
+  $config  array           ['debug' => true, 'env' => 'dev']
+  $name    string          "World"
+```
+
+### Protected Variables
+
+Magic variables cannot be overwritten:
+
+```php
+>>> $_ = 'my value'  // This sets a regular variable
+>>> 2 + 2
+=> 4
+>>> $_  // The magic variable takes precedence
+=> 4
+```
+
+<Note>
+  Magic variables are read-only in the sense that they're automatically updated by PsySH. Any explicit assignments are ignored in favor of the automatic values.
+</Note>
+
+## Working with History
+
+Combine magic variables with history replay:
+
+```php
+>>> $numbers = [1, 2, 3, 4, 5]
+>>> array_sum($_)
+=> 15
+>>> $total = $_
+>>> $average = $total / count($numbers)
+=> 3
+```
+
+See the [History Management](/usage/history) guide for more details on using history.
+
+## Source Code Reference
+
+Magic variables are managed in the `Context` class:
+
+- `$_`, `$_e`, `$__out` - Defined in `src/Context.php:22-28`
+- Return values set via `setReturnValue()` - `src/Context.php:148`
+- Exceptions set via `setLastException()` - `src/Context.php:168`
+- Output captured via `setLastStdout()` - `src/Context.php:192`

@@ -1,0 +1,517 @@
+---
+title: "\\Psy\\Shell"
+description: "The PsySH Shell application class"
+---
+
+The main PsySH Shell class. This is the core REPL (Read-Eval-Print-Loop) application.
+
+## Constructor
+
+### `__construct(?Configuration $config = null)`
+
+Create a new Psy Shell instance.
+
+<ParamField path="config" type="Configuration" optional>
+  Configuration instance. If not provided, a default Configuration will be created.
+</ParamField>
+
+```php
+use Psy\Shell;
+use Psy\Configuration;
+
+// Create shell with default config
+$shell = new Shell();
+
+// Create shell with custom config
+$config = new Configuration(['colorMode' => 'forced']);
+$shell = new Shell($config);
+```
+
+## Public Methods
+
+### `run(?InputInterface $input = null, ?OutputInterface $output = null): int`
+
+Run the PsySH REPL.
+
+<ParamField path="input" type="InputInterface" optional>
+  Symfony Console input instance (optional)
+</ParamField>
+
+<ParamField path="output" type="OutputInterface" optional>
+  Symfony Console output instance (optional)
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Exit code (0 on success)
+</ResponseField>
+
+```php
+$shell = new Shell();
+$exitCode = $shell->run();
+```
+
+### `boot(?InputInterface $input = null, ?OutputInterface $output = null): void`
+
+Boot the shell, initializing the CodeCleaner and Readline.
+
+This is called lazily when commands or methods require these dependencies.
+
+<ParamField path="input" type="InputInterface" optional>
+  Input for trust prompts (optional)
+</ParamField>
+
+<ParamField path="output" type="OutputInterface" optional>
+  Output for trust prompts (optional)
+</ParamField>
+
+```php
+$shell = new Shell();
+$shell->boot();
+```
+
+### `execute(string $code, bool $throwExceptions = false): mixed`
+
+Execute code in the shell execution context.
+
+<ParamField path="code" type="string" required>
+  PHP code to execute
+</ParamField>
+
+<ParamField path="throwExceptions" type="bool" default="false">
+  Whether to throw exceptions instead of catching them
+</ParamField>
+
+<ResponseField name="return" type="mixed">
+  The result of the executed code
+</ResponseField>
+
+```php
+$shell = new Shell();
+$result = $shell->execute('return 2 + 2;');
+// $result === 4
+```
+
+### `addCommand(BaseCommand|callable $command): ?BaseCommand`
+
+Add a command to the shell.
+
+<ParamField path="command" type="BaseCommand|callable" required>
+  A Symfony Console Command object or callable
+</ParamField>
+
+<ResponseField name="return" type="BaseCommand|null">
+  The registered command, or null
+</ResponseField>
+
+```php
+use Symfony\Component\Console\Command\Command;
+
+$shell = new Shell();
+$shell->addCommand(new MyCustomCommand());
+```
+
+### `setScopeVariables(array $vars): void`
+
+Set the variables currently in scope.
+
+<ParamField path="vars" type="array" required>
+  Associative array of variable names to values
+</ParamField>
+
+```php
+$shell = new Shell();
+$shell->setScopeVariables([
+    'foo' => 'bar',
+    'items' => [1, 2, 3],
+]);
+```
+
+### `getScopeVariables(bool $includeBoundObject = true): array`
+
+Return the set of variables currently in scope.
+
+<ParamField path="includeBoundObject" type="bool" default="true">
+  Pass false to exclude 'this'. If you're passing the scope variables to `extract()` you must exclude 'this'.
+</ParamField>
+
+<ResponseField name="return" type="array">
+  Associative array of scope variables
+</ResponseField>
+
+```php
+$shell = new Shell();
+$vars = $shell->getScopeVariables();
+$varsWithoutThis = $shell->getScopeVariables(false);
+```
+
+### `getScopeVariable(string $name): mixed`
+
+Get a scope variable value by name.
+
+<ParamField path="name" type="string" required>
+  Variable name (without $)
+</ParamField>
+
+<ResponseField name="return" type="mixed">
+  Variable value
+</ResponseField>
+
+```php
+$shell = new Shell();
+$shell->setScopeVariables(['foo' => 'bar']);
+$value = $shell->getScopeVariable('foo'); // 'bar'
+```
+
+### `setBoundObject($boundObject): void`
+
+Set the bound object ($this variable) for the interactive shell.
+
+<ParamField path="boundObject" type="object|null" required>
+  Object to bind as $this in the shell
+</ParamField>
+
+```php
+class MyClass {
+    private $secret = 'hidden';
+}
+
+$obj = new MyClass();
+$shell = new Shell();
+$shell->setBoundObject($obj);
+// Now you can access $this->secret in the shell
+```
+
+### `getBoundObject(): ?object`
+
+Get the bound object ($this variable) for the interactive shell.
+
+<ResponseField name="return" type="object|null">
+  The bound object, or null
+</ResponseField>
+
+### `setBoundClass($boundClass): void`
+
+Set the bound class (self) for the interactive shell.
+
+<ParamField path="boundClass" type="string|null" required>
+  Fully qualified class name to bind as self
+</ParamField>
+
+```php
+$shell = new Shell();
+$shell->setBoundClass('App\\MyClass');
+// Now you can access static members via self:: in the shell
+```
+
+### `getBoundClass(): ?string`
+
+Get the bound class (self) for the interactive shell.
+
+<ResponseField name="return" type="string|null">
+  The bound class name, or null
+</ResponseField>
+
+### `setIncludes(array $includes = []): void`
+
+Add includes to be parsed and executed before running the interactive shell.
+
+<ParamField path="includes" type="array" default="[]">
+  Array of file paths to include
+</ParamField>
+
+```php
+$shell = new Shell();
+$shell->setIncludes([
+    '/path/to/bootstrap.php',
+    '/path/to/helpers.php',
+]);
+```
+
+### `getIncludes(): array`
+
+Get PHP files to be parsed and executed before running the interactive shell.
+
+<ResponseField name="return" type="string[]">
+  Array of file paths
+</ResponseField>
+
+### `addMatchers(array $matchers): void`
+
+Add tab completion matchers.
+
+<ParamField path="matchers" type="array" required>
+  Array of matcher instances
+</ParamField>
+
+```php
+use Psy\TabCompletion\Matcher\ClassNamesMatcher;
+
+$shell = new Shell();
+$shell->addMatchers([new ClassNamesMatcher()]);
+```
+
+### `setOutput(OutputInterface $output): void`
+
+Set the shell output.
+
+<ParamField path="output" type="OutputInterface" required>
+  Symfony Console output instance
+</ParamField>
+
+### `setForceReload(bool $force): void`
+
+Enable or disable force-reload mode for code reloaders.
+
+Used by the `yolo` command to bypass safety warnings when reloading code.
+
+<ParamField path="force" type="bool" required>
+  Whether to force reload
+</ParamField>
+
+### `hasCode(): bool`
+
+Check whether this shell's code buffer contains code.
+
+<ResponseField name="return" type="bool">
+  True if the code buffer contains code
+</ResponseField>
+
+### `addCode(string $code, bool $silent = false): void`
+
+Add code to the code buffer.
+
+<ParamField path="code" type="string" required>
+  PHP code to add
+</ParamField>
+
+<ParamField path="silent" type="bool" default="false">
+  Whether to add silently (won't appear in history)
+</ParamField>
+
+```php
+$shell = new Shell();
+$shell->addCode('$x = 1;');
+$shell->addCode('$y = 2;');
+```
+
+### `getCodeBuffer(): array`
+
+Get the current code buffer.
+
+This is useful for commands which manipulate the buffer.
+
+<ResponseField name="return" type="string[]">
+  Array of code lines in the buffer
+</ResponseField>
+
+### `resetCodeBuffer(): void`
+
+Reset the current code buffer.
+
+This should be run after evaluating user input, catching exceptions, or on demand by commands.
+
+### `flushCode(): ?string`
+
+Flush the current (valid) code buffer.
+
+If the code buffer is valid, resets the code buffer and returns the current code.
+
+<ResponseField name="return" type="string|null">
+  PHP code buffer contents, or null if invalid
+</ResponseField>
+
+### `addInput($input, bool $silent = false): void`
+
+Inject input into the input buffer.
+
+This is useful for commands which want to replay history.
+
+<ParamField path="input" type="string|array" required>
+  Input line(s) to inject
+</ParamField>
+
+<ParamField path="silent" type="bool" default="false">
+  Whether to add silently
+</ParamField>
+
+### `getNamespace(): ?string`
+
+Get the current evaluation scope namespace.
+
+<ResponseField name="return" type="string|null">
+  Current code namespace, or null
+</ResponseField>
+
+```php
+$shell = new Shell();
+$shell->addCode('namespace App\\Controllers;');
+$namespace = $shell->getNamespace(); // 'App\\Controllers'
+```
+
+### `writeStdout(string $out, int $phase = PHP_OUTPUT_HANDLER_END): string`
+
+Write a string to stdout.
+
+This is used by the shell loop for rendering output from evaluated code.
+
+<ParamField path="out" type="string" required>
+  Output to write
+</ParamField>
+
+<ParamField path="phase" type="int" default="PHP_OUTPUT_HANDLER_END">
+  Output buffering phase
+</ParamField>
+
+<ResponseField name="return" type="string">
+  Empty string
+</ResponseField>
+
+### `writeReturnValue($ret, bool $rawOutput = false): void`
+
+Write a return value to stdout.
+
+The return value is formatted or pretty-printed, and rendered in a visibly distinct manner.
+
+<ParamField path="ret" type="mixed" required>
+  Return value to write
+</ParamField>
+
+<ParamField path="rawOutput" type="bool" default="false">
+  Write raw var_export-style values
+</ParamField>
+
+### `writeException(Throwable $e): void`
+
+Render and write a caught exception or error.
+
+Exceptions are formatted according to severity. Stores the exception as the last exception in the shell context.
+
+<ParamField path="e" type="Throwable" required>
+  Exception or error instance to write
+</ParamField>
+
+### `getLastExecSuccess(): bool`
+
+Check whether the last execution was successful.
+
+Returns true if a return value was logged rather than an exception.
+
+<ResponseField name="return" type="bool">
+  True if last execution was successful
+</ResponseField>
+
+### `formatException(Throwable $e): string`
+
+Helper for formatting an exception or error for writeException().
+
+<ParamField path="e" type="Throwable" required>
+  Exception to format
+</ParamField>
+
+<ResponseField name="return" type="string">
+  Formatted exception message
+</ResponseField>
+
+### `handleError(int $errno, string $errstr, string $errfile, int $errline): void`
+
+Error handler for throwing ErrorExceptions.
+
+This respects error levels and the errorLoggingLevel config.
+
+<ParamField path="errno" type="int" required>
+  Error type
+</ParamField>
+
+<ParamField path="errstr" type="string" required>
+  Error message
+</ParamField>
+
+<ParamField path="errfile" type="string" required>
+  Filename where error occurred
+</ParamField>
+
+<ParamField path="errline" type="int" required>
+  Line number where error occurred
+</ParamField>
+
+## Static Methods
+
+### `isIncluded(array $trace): bool`
+
+Check whether the first thing in a backtrace is an include call.
+
+This is used by the psysh bin to decide whether to start a shell on boot, or to simply autoload the library.
+
+<ParamField path="trace" type="array" required>
+  Backtrace array from debug_backtrace()
+</ParamField>
+
+<ResponseField name="return" type="bool">
+  True if the trace shows an include
+</ResponseField>
+
+### `isPhar(): bool`
+
+Check if the currently running PsySH bin is a phar archive.
+
+<ResponseField name="return" type="bool">
+  True if running from a phar
+</ResponseField>
+
+### `getVersionHeader(bool $useUnicode = false): string`
+
+Get a pretty header including the current version of PsySH.
+
+<ParamField path="useUnicode" type="bool" default="false">
+  Whether to use Unicode characters
+</ParamField>
+
+<ResponseField name="return" type="string">
+  Version header string
+</ResponseField>
+
+```php
+echo Shell::getVersionHeader(true);
+// Psy Shell v0.12.20 (PHP 8.2.0 — cli)
+```
+
+## Constants
+
+<ResponseField name="VERSION" type="string">
+  Current PsySH version number (e.g., 'v0.12.20')
+</ResponseField>
+
+## Usage Example
+
+```php
+use Psy\Shell;
+use Psy\Configuration;
+
+// Create a shell with custom configuration
+$config = new Configuration([
+    'colorMode' => 'forced',
+    'startupMessage' => 'Welcome to my app!',
+]);
+
+$shell = new Shell($config);
+
+// Set up context
+$shell->setScopeVariables([
+    'app' => $myApp,
+    'db' => $database,
+]);
+
+// Bind an object context
+$shell->setBoundObject($myObject);
+
+// Add files to include on startup
+$shell->setIncludes([
+    __DIR__ . '/bootstrap.php',
+]);
+
+// Execute some code
+$result = $shell->execute('return app()->version();');
+
+// Start interactive REPL
+$exitCode = $shell->run();
+```

@@ -1,0 +1,200 @@
+---
+title: Configuration Overview
+description: Learn how to configure PsySH using configuration files, environment variables, and runtime options
+---
+
+PsySH can be extensively configured to customize its behavior, appearance, and features. Configuration can be provided through config files, environment variables, or programmatically.
+
+## Configuration Files
+
+PsySH searches for configuration files in multiple locations, using the first one found:
+
+<Tabs>
+  <Tab title="Linux / macOS">
+    PsySH follows the XDG Base Directory specification:
+
+    ```bash
+    # Primary config location (recommended)
+    ~/.config/psysh/config.php
+
+    # Legacy location (still supported)
+    ~/.psysh/config.php
+
+    # System-wide configs
+    /etc/xdg/psysh/config.php
+    ```
+
+    You can also use the older `rc.php` filename instead of `config.php`.
+  </Tab>
+  <Tab title="Windows">
+    ```powershell
+    # Primary location
+    %APPDATA%\PsySH\config.php
+
+    # Alternative location
+    %USERPROFILE%\.psysh\config.php
+    ```
+  </Tab>
+</Tabs>
+
+### Local Project Configuration
+
+PsySH supports project-specific configuration through a `.psysh.php` file in your current working directory:
+
+```php .psysh.php
+<?php
+// Project-specific PsySH configuration
+return [
+    'defaultIncludes' => [__DIR__.'/bootstrap.php'],
+    'startupMessage' => 'Welcome to MyApp console!',
+];
+```
+
+<Note>
+  Local config files are subject to **project trust** settings. PsySH will prompt before loading untrusted project configs to prevent executing arbitrary code.
+</Note>
+
+## Configuration Methods
+
+There are two ways to configure PsySH in your config file:
+
+### 1. Return an Array
+
+The simplest method - return an associative array of options:
+
+```php config.php
+<?php
+return [
+    'colorMode' => 'forced',
+    'verbosity' => 'verbose',
+    'historySize' => 10000,
+    'theme' => 'compact',
+];
+```
+
+### 2. Manipulate the Configuration Object
+
+For more advanced configuration, manipulate the `$config` object directly:
+
+```php config.php
+<?php
+// The $config object is available to your config file
+$config->setColorMode('forced');
+$config->setVerbosity('verbose');
+$config->setHistorySize(10000);
+
+// Add custom commands
+$config->addCommands([
+    new MyCustomCommand(),
+]);
+
+// Add custom casters for better variable display
+$config->addCasters([
+    'MyApp\\User' => 'MyApp\\Casters\\UserCaster::cast',
+]);
+
+// No need to return anything when using this method
+```
+
+## Environment Variables
+
+Several configuration options can be set via environment variables:
+
+<ParamField path="PSYSH_CONFIG" type="string">
+  Path to a custom config file
+  
+  ```bash
+  export PSYSH_CONFIG="/path/to/config.php"
+  psysh
+  ```
+</ParamField>
+
+<ParamField path="PSYSH_TRUST_PROJECT" type="string">
+  Control project trust behavior
+  
+  - `always` - Always trust project configs
+  - `never` - Never trust project configs (Restricted Mode)
+  - `prompt` - Prompt before loading (default)
+  
+  ```bash
+  export PSYSH_TRUST_PROJECT=always
+  ```
+</ParamField>
+
+## Command-Line Options
+
+Many configuration options can be overridden at runtime:
+
+```bash
+# Specify custom config file
+psysh --config=/path/to/config.php
+psysh -c /path/to/config.php
+
+# Color mode
+psysh --color              # Force colors
+psysh --no-color          # Disable colors
+
+# Verbosity
+psysh --quiet             # Minimal output
+psysh -v                  # Verbose
+psysh -vv                 # Very verbose
+psysh -vvv                # Debug
+
+# Interactive mode
+psysh --interactive       # Force interactive
+psysh --no-interactive    # Non-interactive (requires piped input)
+
+# Theme
+psysh --compact           # Use compact theme
+
+# Project trust
+psysh --trust-project     # Trust this project
+psysh --no-trust-project  # Restricted mode
+
+# Other options
+psysh --raw-output        # Raw var_export style output
+psysh --warm-autoload     # Enable autoload warming
+psysh --yolo              # Minimal validation (not recommended)
+```
+
+## Configuration Priority
+
+When the same option is configured in multiple places, PsySH uses this priority order (highest to lowest):
+
+1. **Command-line arguments** - e.g., `--color`, `-vvv`
+2. **Environment variables** - e.g., `PSYSH_CONFIG`
+3. **Local project config** - `.psysh.php` in current directory
+4. **User config file** - `~/.config/psysh/config.php`
+5. **Default values** - Built-in defaults
+
+## Config File Locations
+
+Use the `paths` command inside PsySH to see where it looks for files:
+
+```php
+>>> paths
+Config files:
+  ~/.config/psysh/config.php
+  ~/.psysh/config.php
+
+Data files:
+  ~/.local/share/psysh
+  ~/.psysh
+
+Runtime directory:
+  /tmp/psysh
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration Options" icon="sliders" href="/configuration/options">
+    Explore all available configuration options
+  </Card>
+  <Card title="Theme System" icon="palette" href="/configuration/themes">
+    Customize colors and output appearance
+  </Card>
+  <Card title="Sample Config" icon="file-code" href="/configuration/sample">
+    Complete configuration file example
+  </Card>
+</CardGroup>

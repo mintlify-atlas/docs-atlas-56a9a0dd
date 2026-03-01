@@ -1,0 +1,479 @@
+---
+title: Configuration Options
+description: Complete reference of all PsySH configuration options
+---
+
+All configuration options available in PsySH, extracted from the source code with their actual default values.
+
+## Directories and Files
+
+<ParamField path="configDir" type="string" default="~/.config/psysh">
+  Directory for configuration files
+  
+  ```php
+  'configDir' => '/custom/config/path',
+  ```
+  
+  Overrides the default XDG config directory location.
+</ParamField>
+
+<ParamField path="dataDir" type="string" default="~/.local/share/psysh">
+  Directory for data files (PHP manual, etc.)
+  
+  ```php
+  'dataDir' => '/custom/data/path',
+  ```
+</ParamField>
+
+<ParamField path="runtimeDir" type="string" default="/tmp/psysh">
+  Directory for temporary runtime files
+  
+  ```php
+  'runtimeDir' => '/custom/runtime/path',
+  ```
+</ParamField>
+
+<ParamField path="historyFile" type="string" default="~/.config/psysh/psysh_history">
+  Path to the readline history file
+  
+  ```php
+  'historyFile' => '/path/to/custom_history',
+  ```
+</ParamField>
+
+<ParamField path="manualDbFile" type="string" default="~/.local/share/psysh/php_manual.php">
+  Path to the PHP manual database file
+  
+  ```php
+  'manualDbFile' => '/path/to/php_manual.php',
+  ```
+  
+  Supports both v3 format (`.php`) and legacy v2 format (`.sqlite`).
+</ParamField>
+
+## History Management
+
+<ParamField path="historySize" type="int" default="0 (unlimited)">
+  Maximum number of history entries to save
+  
+  ```php
+  'historySize' => 10000,
+  ```
+  
+  Set to `0` for unlimited history.
+</ParamField>
+
+<ParamField path="eraseDuplicates" type="bool" default="null (disabled)">
+  Remove duplicate entries from history
+  
+  ```php
+  'eraseDuplicates' => true,
+  ```
+  
+  When enabled, only the most recent instance of a command is kept.
+</ParamField>
+
+## Input and Output
+
+<ParamField path="colorMode" type="string" default="'auto'">
+  Control colored output
+  
+  ```php
+  'colorMode' => 'forced',  // Always use colors
+  'colorMode' => 'disabled', // Never use colors
+  'colorMode' => 'auto',     // Auto-detect (default)
+  ```
+  
+  Valid values: `'auto'`, `'forced'`, `'disabled'`
+</ParamField>
+
+<ParamField path="interactiveMode" type="string" default="'auto'">
+  Control interactive input
+  
+  ```php
+  'interactiveMode' => 'forced',   // Force interactive mode
+  'interactiveMode' => 'disabled', // Non-interactive (requires piped input)
+  'interactiveMode' => 'auto',     // Auto-detect (default)
+  ```
+  
+  Valid values: `'auto'`, `'forced'`, `'disabled'`
+</ParamField>
+
+<ParamField path="verbosity" type="string" default="'normal'">
+  Output verbosity level
+  
+  ```php
+  'verbosity' => 'quiet',        // Minimal output
+  'verbosity' => 'normal',       // Standard output (default)
+  'verbosity' => 'verbose',      // Detailed output
+  'verbosity' => 'very_verbose', // More detailed
+  'verbosity' => 'debug',        // Debug information
+  ```
+</ParamField>
+
+<ParamField path="rawOutput" type="bool" default="false">
+  Use raw var_export style output (non-interactive mode only)
+  
+  ```php
+  'rawOutput' => true,
+  ```
+</ParamField>
+
+<ParamField path="pager" type="string|OutputPager|false" default="'less -R -F -X' (auto-detected)">
+  Output pager command for long output
+  
+  ```php
+  'pager' => 'more',              // Use 'more' command
+  'pager' => 'less -R',           // Custom less options
+  'pager' => false,               // Disable paging
+  ```
+  
+  Defaults to `cli.pager` ini value or auto-detects `less`.
+</ParamField>
+
+## Readline Configuration
+
+<ParamField path="useReadline" type="bool" default="true (if available)">
+  Enable readline support for line editing
+  
+  ```php
+  'useReadline' => false,
+  ```
+  
+  Automatically disabled if readline extension is not available.
+</ParamField>
+
+<ParamField path="useBracketedPaste" type="bool" default="false">
+  Enable bracketed paste mode (GNU readline only)
+  
+  ```php
+  'useBracketedPaste' => true,
+  ```
+  
+  When working, prevents tabs from autocompleting and newlines from executing during paste. Can be unstable.
+</ParamField>
+
+<ParamField path="useTabCompletion" type="bool" default="true (if readline available)">
+  Enable tab completion
+  
+  ```php
+  'useTabCompletion' => false,
+  ```
+</ParamField>
+
+## Code Execution
+
+<ParamField path="usePcntl" type="bool" default="true (if available)">
+  Enable process control (pcntl) for forking code execution
+  
+  ```php
+  'usePcntl' => false,
+  ```
+  
+  Automatically disabled when XDebug debugger is active.
+</ParamField>
+
+<ParamField path="requireSemicolons" type="bool" default="false">
+  Require semicolons at the end of statements
+  
+  ```php
+  'requireSemicolons' => true,
+  ```
+  
+  By default, PsySH auto-inserts semicolons when missing.
+</ParamField>
+
+<ParamField path="strictTypes" type="bool" default="false">
+  Enable strict type declarations
+  
+  ```php
+  'strictTypes' => true,
+  ```
+  
+  Equivalent to `declare(strict_types=1)` in PHP.
+</ParamField>
+
+<ParamField path="yolo" type="bool" default="false">
+  Run with minimal input validation
+  
+  ```php
+  'yolo' => true, // Not recommended!
+  ```
+  
+  <Note type="warning">
+    You probably don't want this. It disables important safety checks.
+  </Note>
+</ParamField>
+
+<ParamField path="errorLoggingLevel" type="int" default="E_ALL">
+  Error reporting level for automatic logging
+  
+  ```php
+  'errorLoggingLevel' => E_ALL & ~E_DEPRECATED,
+  'errorLoggingLevel' => 0, // Disable error logging
+  ```
+  
+  By default, PsySH logs all errors regardless of `error_reporting` level.
+</ParamField>
+
+## Code Cleaning and Analysis
+
+<ParamField path="codeCleaner" type="CodeCleaner" default="(auto-created)">
+  Custom CodeCleaner instance for input validation
+  
+  ```php
+  'codeCleaner' => new \Psy\CodeCleaner($parser, $traverser),
+  ```
+</ParamField>
+
+<ParamField path="implicitUse" type="false|array" default="false">
+  Automatically add use statements for unqualified class references
+  
+  ```php
+  // Disable (default)
+  'implicitUse' => false,
+  
+  // Enable for specific namespaces
+  'implicitUse' => [
+      'includeNamespaces' => ['App\\', 'Domain\\'],
+  ],
+  
+  // With exclusions
+  'implicitUse' => [
+      'includeNamespaces' => ['App\\'],
+      'excludeNamespaces' => ['App\\Legacy\\'],
+  ],
+  ```
+  
+  Works best with `--warm-autoload` to pre-load classes.
+</ParamField>
+
+## Display and Presentation
+
+<ParamField path="theme" type="string|array|Theme" default="'modern'">
+  Output theme for colors and prompts
+  
+  ```php
+  'theme' => 'modern',   // Modern theme (default)
+  'theme' => 'compact',  // Compact output
+  'theme' => 'classic',  // Classic >>> prompt
+  
+  // Custom theme configuration
+  'theme' => [
+      'compact' => true,
+      'prompt' => '>> ',
+      'styles' => [
+          'error' => ['white', 'red', ['bold']],
+      ],
+  ],
+  ```
+  
+  See [Themes documentation](/configuration/themes) for details.
+</ParamField>
+
+<ParamField path="prompt" type="string" default="null">
+  Custom prompt string
+  
+  ```php
+  'prompt' => '>>> ',
+  ```
+  
+  <Note type="warning">
+    Deprecated: Use `theme` configuration instead. This option is maintained for backward compatibility.
+  </Note>
+</ParamField>
+
+<ParamField path="formatterStyles" type="array" default="[]">
+  Custom output formatter styles
+  
+  ```php
+  'formatterStyles' => [
+      'error' => ['white', 'red', ['bold']],
+      'warning' => ['black', 'yellow'],
+  ],
+  ```
+  
+  <Note type="warning">
+    Deprecated: Use `theme` configuration instead.
+  </Note>
+</ParamField>
+
+<ParamField path="useUnicode" type="bool" default="true">
+  Use Unicode characters in PsySH output
+  
+  ```php
+  'useUnicode' => false,
+  ```
+</ParamField>
+
+<ParamField path="forceArrayIndexes" type="bool" default="false">
+  Always show array indexes in output, even for sequential arrays
+  
+  ```php
+  'forceArrayIndexes' => true,
+  ```
+</ParamField>
+
+## Startup and Messages
+
+<ParamField path="defaultIncludes" type="array" default="[]">
+  Files to include automatically at startup
+  
+  ```php
+  'defaultIncludes' => [
+      __DIR__.'/bootstrap.php',
+      __DIR__.'/helpers.php',
+  ],
+  ```
+</ParamField>
+
+<ParamField path="startupMessage" type="string" default="null">
+  Custom message to display at startup
+  
+  ```php
+  'startupMessage' => 'Welcome to MyApp Console!',
+  ```
+</ParamField>
+
+## Project Trust and Security
+
+<ParamField path="trustProject" type="bool|string" default="'prompt'">
+  Control loading of local project configurations
+  
+  ```php
+  'trustProject' => 'always',  // Always trust project configs
+  'trustProject' => 'never',   // Never trust (Restricted Mode)
+  'trustProject' => 'prompt',  // Prompt user (default)
+  'trustProject' => true,      // Same as 'always'
+  'trustProject' => false,     // Same as 'never'
+  ```
+</ParamField>
+
+## Autoload Warming
+
+<ParamField path="warmAutoload" type="bool|array" default="false">
+  Pre-load classes for better tab completion
+  
+  ```php
+  // Enable with defaults
+  'warmAutoload' => true,
+  
+  // Disable (default)
+  'warmAutoload' => false,
+  
+  // Custom configuration
+  'warmAutoload' => [
+      'maxDepth' => 3,
+      'maxNamespaceLength' => 50,
+  ],
+  
+  // Custom warmers
+  'warmAutoload' => [
+      'warmers' => [
+          new MyCustomAutoloadWarmer(),
+      ],
+  ],
+  ```
+  
+  Requires project trust for Composer autoload files.
+</ParamField>
+
+## Logging
+
+<ParamField path="logging" type="callable|LoggerInterface|array" default="null">
+  Log PsySH input and execution
+  
+  ```php
+  // Simple callback
+  'logging' => function ($kind, $data) {
+      file_put_contents('/tmp/psysh.log', "[$kind] $data\n", FILE_APPEND);
+  },
+  
+  // PSR-3 logger with defaults
+  'logging' => $psrLogger,
+  
+  // Granular control
+  'logging' => [
+      'logger' => $psrLogger,
+      'level' => [
+          'input'   => 'info',    // Log user input
+          'command' => false,     // Don't log commands
+          'execute' => 'debug',   // Log executed code
+      ],
+  ],
+  ```
+</ParamField>
+
+## Update Checking
+
+<ParamField path="updateCheck" type="string" default="'weekly'">
+  How often to check for PsySH updates
+  
+  ```php
+  'updateCheck' => 'always',  // Check every run
+  'updateCheck' => 'daily',   // Once per day
+  'updateCheck' => 'weekly',  // Once per week (default)
+  'updateCheck' => 'monthly', // Once per month
+  'updateCheck' => 'never',   // Disable update checks
+  ```
+</ParamField>
+
+<ParamField path="updateManualCheck" type="string" default="'weekly'">
+  How often to check for PHP manual updates
+  
+  ```php
+  'updateManualCheck' => 'always',
+  'updateManualCheck' => 'daily',
+  'updateManualCheck' => 'weekly',  // Default
+  'updateManualCheck' => 'monthly',
+  'updateManualCheck' => 'never',
+  ```
+</ParamField>
+
+## Advanced Configuration
+
+<ParamField path="warnOnMultipleConfigs" type="bool" default="false">
+  Emit warnings when multiple config files are found
+  
+  ```php
+  'warnOnMultipleConfigs' => true,
+  ```
+  
+  Helps identify conflicting configuration files.
+</ParamField>
+
+## Programmatic Configuration
+
+These options are typically set via methods rather than config arrays:
+
+### Adding Custom Commands
+
+```php
+$config->addCommands([
+    new MyCustomCommand(),
+    new AnotherCommand(),
+]);
+```
+
+### Adding Tab Completion Matchers
+
+```php
+$config->addMatchers([
+    new MyCustomMatcher(),
+]);
+```
+
+### Adding Variable Casters
+
+```php
+$config->addCasters([
+    'MyApp\\User' => 'MyApp\\Casters\\UserCaster::cast',
+    'MyApp\\Product' => function ($obj, $caster, $depth) {
+        // Custom casting logic
+        return [
+            'id' => $obj->getId(),
+            'name' => $obj->getName(),
+        ];
+    },
+]);
+```

@@ -1,0 +1,381 @@
+---
+title: Other Commands
+description: Additional PsySH commands for help, session management, and utilities
+---
+
+This page covers additional PsySH commands that help with session management and general usage.
+
+## help Command
+
+Display help information about PsySH commands.
+
+### Syntax
+
+```php
+help [command]
+```
+
+### Alias
+
+- `?`
+
+### Arguments
+
+<ParamField path="command" type="string">
+  The name of a command to get help for. If omitted, shows a list of all available commands.
+</ParamField>
+
+### Usage Examples
+
+#### List All Commands
+
+```php
+>>> help
+>>> ?
+```
+
+<Tabs>
+  <Tab title="Output">
+    ```
+    doc         Read the documentation for an object, class, constant, method or property.
+                Aliases: rtfm, man
+    
+    show        Show the code for an object, class, constant, method or property.
+    
+    ls          List local, instance or class variables, methods and constants.
+                Aliases: dir
+    
+    dump        Dump an object or primitive.
+    
+    history     Show the Psy Shell history.
+                Aliases: hist
+    
+    ... (more commands)
+    ```
+  </Tab>
+</Tabs>
+
+#### Get Help for Specific Command
+
+```php
+>>> help doc
+>>> help ls
+>>> ? show
+```
+
+<Tabs>
+  <Tab title="Output">
+    ```
+    Usage:
+      doc [options] [--] [<target>]
+    
+    Arguments:
+      target                Function, class, instance, constant, method or property to document.
+    
+    Options:
+      -a, --all            Show documentation for superclasses as well.
+          --update-manual  Download and install the latest PHP manual
+    
+    Help:
+      Read the documentation for an object, class, constant, method or property.
+      
+      e.g.
+      >>> doc preg_replace
+      >>> doc Psy\Shell
+    ```
+  </Tab>
+</Tabs>
+
+### Tips
+
+<Tip>
+  Use `?` as a quick shortcut:
+  ```php
+  >>> ? doc
+  >>> ? ls
+  ```
+</Tip>
+
+<Tip>
+  If you try to get help for a non-existent command, PsySH suggests using `doc` instead:
+  ```php
+  >>> help array_map
+  CommandNotFoundException: Command "array_map" not found.
+  
+  To read PHP documentation, use doc array_map
+  ```
+</Tip>
+
+---
+
+## exit Command
+
+Exit the PsySH session and return to the caller.
+
+### Syntax
+
+```php
+exit
+```
+
+### Aliases
+
+- `quit`
+- `q`
+
+### Usage Examples
+
+```php
+>>> exit
+Goodbye
+```
+
+```php
+>>> quit
+Goodbye
+```
+
+```php
+>>> q
+Goodbye  
+```
+
+### Behavior
+
+#### In Standalone Mode
+
+When running PsySH from the command line:
+
+```bash
+$ psysh
+>>> exit
+Goodbye
+$ # Back to shell
+```
+
+Returns you to your system shell.
+
+#### As a Debugger
+
+When using `\Psy\debug()` as a breakpoint:
+
+```php
+function processData($data) {
+    \Psy\debug();
+    return transform($data);
+}
+```
+
+```php
+>>> exit
+Goodbye
+# Code continues executing
+```
+
+Execution resumes after the debug point.
+
+#### In Nested Shells
+
+If you've opened a new shell within PsySH:
+
+```php
+>>> $shell = new Psy\Shell()
+>>> $shell->run()
+>>> exit  # Exits the nested shell
+>>> exit  # Exits the outer shell
+```
+
+### Keyboard Shortcuts
+
+You can also exit using:
+- **Ctrl+D** (EOF) - On Unix/Linux/macOS
+- **Ctrl+Z** then Enter - On Windows
+
+<Tip>
+  `Ctrl+D` is often faster than typing `exit`:
+  ```php
+  >>> # Press Ctrl+D
+  Goodbye
+  ```
+</Tip>
+
+---
+
+## clear Command
+
+Clear the PsySH screen.
+
+### Syntax
+
+```php
+clear
+```
+
+### Usage
+
+```php
+>>> clear
+```
+
+The terminal screen is cleared, and you get a fresh prompt.
+
+### How It Works
+
+The `clear` command sends ANSI escape sequences to clear the terminal:
+
+```
+ESC[2J  - Clear entire screen
+ESC[0;0f - Move cursor to 0,0
+```
+
+### Alternative Methods
+
+#### Keyboard Shortcut
+
+If your PHP has readline support:
+- **Ctrl+L** - Clear screen (on most terminals)
+
+```php
+>>> # Press Ctrl+L to clear
+```
+
+<Tip>
+  `Ctrl+L` is usually faster and works in most readline-enabled applications.
+</Tip>
+
+#### Manual Terminal Clear
+
+You can also use your terminal's clear command before starting PsySH:
+
+```bash
+$ clear && psysh
+```
+
+### When to Use
+
+- **Cluttered output** - After dumping large objects or running many commands
+- **Fresh start** - When beginning a new debugging session
+- **Privacy** - Before sharing your screen
+- **Focus** - To remove distractions
+
+<Tabs>
+  <Tab title="Before">
+    ```php
+    >>> dump $huge_object
+    [... 1000 lines of output ...]
+    >>> ls
+    [... more output ...]
+    >>> # Screen is cluttered
+    ```
+  </Tab>
+  <Tab title="After">
+    ```php
+    >>> clear
+    
+    
+    
+    >>> # Clean screen, ready to work
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Additional Utility Commands
+
+While not as commonly used, PsySH includes several other utility commands:
+
+### sudo Command
+
+Re-run the last command as a different user (when permission is available).
+
+```php
+>>> sudo
+```
+
+<Warning>
+  This is rarely needed in typical PsySH usage and requires specific system permissions.
+</Warning>
+
+### parse Command
+
+Parse PHP code and show the abstract syntax tree (AST).
+
+```php
+>>> parse $code
+```
+
+Useful for understanding how PHP parses your code.
+
+---
+
+## Common Workflows
+
+### Help → Explore → Clean
+
+```php
+>>> help              # See available commands
+>>> doc DateTime      # Learn about a class  
+>>> dump $object      # Inspect something
+>>> clear             # Clean up
+>>> exit              # Leave
+```
+
+### Debug → Fix → Exit
+
+```php
+// Code hits \Psy\debug()
+>>> whereami          # Where am I?
+>>> ls                # What's available?
+>>> dump $var         # What's wrong?
+>>> $var = 'fixed'    # Test fix
+>>> exit              # Continue execution
+```
+
+### Quick Reference
+
+```php
+>>> ?                 # Quick help
+>>> ? doc             # Help on 'doc' command
+>>> doc array_map     # Read PHP docs
+>>> clear             # Clean screen  
+>>> q                 # Quick exit
+```
+
+---
+
+## Tips & Shortcuts
+
+<Tip>
+  **Keyboard shortcuts are faster:**
+  - `Ctrl+D` instead of `exit`
+  - `Ctrl+L` instead of `clear`  
+  - `?` instead of `help`
+</Tip>
+
+<Tip>
+  **Chain help exploration:**
+  ```php
+  >>> help           # See all commands
+  >>> help ls        # Learn about 'ls'
+  >>> ls DateTime    # Try it out
+  >>> doc DateTime   # Read more
+  ```
+</Tip>
+
+<Tip>
+  **Use aliases for speed:**
+  ```php
+  >>> q              # Faster than 'exit'
+  >>> ?              # Faster than 'help'  
+  >>> hist           # Faster than 'history'
+  ```
+</Tip>
+
+---
+
+## See Also
+
+- [doc](/commands/doc) - Read documentation
+- [history](/commands/history) - Command history management
+- [Commands Overview](/commands/overview) - All available commands

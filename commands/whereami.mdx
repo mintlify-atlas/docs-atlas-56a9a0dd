@@ -1,0 +1,375 @@
+---
+title: whereami Command  
+description: Show where you are in the code when using PsySH as a debugger
+---
+
+The `whereami` command shows the source code context where you opened the debugger. It displays the file, line number, and surrounding code, helping you understand where execution was paused.
+
+## Syntax
+
+```php
+whereami [options]
+```
+
+## Options
+
+<ParamField path="--num" type="integer" default="5">
+  **Alias:** `-n`
+  
+  Number of lines to show before and after the current line. Default is 5 lines on each side.
+</ParamField>
+
+<ParamField path="--file" type="flag">
+  **Alias:** `-f`, `-a`
+  
+  Show the entire source file instead of just the surrounding context.
+</ParamField>
+
+## Usage Examples
+
+### Basic Usage
+
+When you call `Psy\Shell::debug()` or `\Psy\debug()` in your code:
+
+```php
+function processOrder($order) {
+    $total = calculateTotal($order);
+    
+    \Psy\debug();  // Breakpoint
+    
+    return saveOrder($order, $total);
+}
+```
+
+Inside PsySH:
+
+```php
+>>> whereami
+```
+
+<Tabs>
+  <Tab title="Output">
+    ```php
+    From src/OrderProcessor.php:15:
+    
+       10| function processOrder($order) {
+       11|     $total = calculateTotal($order);
+       12|     
+       13|     \Psy\debug();  // Breakpoint
+       14|     
+    ▸  15|     return saveOrder($order, $total);
+       16| }
+       17| 
+       18| function calculateTotal($order) {
+       19|     return array_sum($order['items']);
+       20| }
+    ```
+  </Tab>
+</Tabs>
+
+The `▸` marker shows the current execution line.
+
+### Show More Context
+
+```php
+>>> whereami -n 10
+>>> whereami --num 20
+```
+
+Shows 10 or 20 lines before and after the current line.
+
+<Tabs>
+  <Tab title="Example">
+    ```php
+    >>> whereami -n 2
+    From src/Controller.php:45:
+    
+       43|     $user = $this->userRepository->find($id);
+       44|     
+    ▸  45|     return view('user.profile', compact('user'));
+       46|     
+       47| }
+    ```
+  </Tab>
+</Tabs>
+
+### Show Entire File
+
+```php
+>>> whereami --file
+>>> whereami -f
+```
+
+Displays the complete source file with the current line highlighted.
+
+<Note>
+  For large files, the output is automatically paged. Use arrow keys to scroll, and press `q` to exit.
+</Note>
+
+## When to Use
+
+### Debugging
+
+The most common use case is when you've inserted a breakpoint:
+
+```php
+public function store(Request $request) {
+    $data = $request->validated();
+    
+    \Psy\debug();  // Where am I?
+    
+    return $this->service->create($data);
+}
+```
+
+```php
+>>> whereami
+From app/Http/Controllers/UserController.php:23:
+   ...
+▸  23|     return $this->service->create($data);
+```
+
+### Lost in the Code
+
+When you forget where you put the breakpoint:
+
+```php
+>>> whereami
+```
+
+Instantly shows your location.
+
+### Code Review
+
+When exploring unfamiliar code:
+
+```php
+>>> whereami -n 20  # See more context
+>>> whereami -f     # See the whole file
+```
+
+## Output Format
+
+The output includes:
+
+1. **File path and line number**
+   ```
+   From src/Services/UserService.php:42:
+   ```
+
+2. **Line numbers** (on the left)
+   ```
+   35| class UserService {
+   36|     public function create($data) {
+   ```
+
+3. **Current line marker** (`▸`)
+   ```
+▸  42|         return $this->repository->save($user);
+   ```
+
+4. **Source code** with syntax highlighting
+
+## Practical Examples
+
+### Debugging a Loop
+
+```php
+foreach ($items as $item) {
+    if ($item->needsProcessing()) {
+        \Psy\debug();
+        $this->process($item);
+    }
+}
+```
+
+```php
+>>> whereami
+From src/Processor.php:28:
+   
+   25| foreach ($items as $item) {
+   26|     if ($item->needsProcessing()) {
+   27|         \Psy\debug();
+▸  28|         $this->process($item);
+   29|     }
+   30| }
+
+>>> $item
+= Item {#123 ...}
+```
+
+### Conditional Breakpoint
+
+```php
+if ($user->role === 'admin' && $user->id === 42) {
+    \Psy\debug();
+}
+```
+
+```php
+>>> whereami
+>>> $user
+>>> ls $user
+```
+
+### Inspecting Context
+
+```php
+private function validateData($data) {
+    if (!isset($data['required_field'])) {
+        \Psy\debug();  // Why is validation failing?
+    }
+}
+```
+
+```php
+>>> whereami
+From src/Validator.php:15:
+   
+   12| private function validateData($data) {
+   13|     if (!isset($data['required_field'])) {
+▸  14|         \Psy\debug();  // Why is validation failing?
+   15|     }
+   16| }
+
+>>> dump $data
+[
+  "other_field" => "value",
+]
+```
+
+## Debugging Workflow
+
+Typical debugging session:
+
+```php
+1. Add breakpoint:
+   \Psy\debug();
+
+2. Run code - PsySH opens
+
+3. Orient yourself:
+   >>> whereami
+
+4. Inspect variables:
+   >>> ls
+   >>> dump $someVar
+
+5. Test fixes:
+   >>> $someVar = 'new value'
+   >>> someFunction($someVar)
+
+6. Continue:
+   >>> exit
+```
+
+## Tips
+
+<Tip>
+  Use `whereami` immediately when the debugger opens:
+  ```php
+  >>> whereami        # Where am I?
+  >>> ls              # What variables are available?
+  >>> dump $key_var   # What's the state?
+  ```
+</Tip>
+
+<Tip>
+  Adjust context size based on complexity:
+  ```php
+  >>> whereami         # Default, quick view
+  >>> whereami -n 15   # More context
+  >>> whereami -f      # Entire file for full picture
+  ```
+</Tip>
+
+<Tip>
+  Combine with other commands:
+  ```php
+  >>> whereami           # See where you are
+  >>> trace              # See how you got here  
+  >>> ls                 # See what's available
+  >>> show SomeClass     # See related code
+  ```
+</Tip>
+
+<Warning>
+  `whereami` only works when you've opened PsySH using `\Psy\debug()` or similar. If you start PsySH directly from the command line, there's no "current location":
+  ```bash
+  $ psysh
+  >>> whereami  # Not meaningful - no breakpoint context
+  ```
+</Warning>
+
+## Common Scenarios
+
+### Deep in a Call Stack
+
+```php
+>>> whereami        # Where am I?
+>>> trace           # How did I get here?
+>>> whereami -n 10  # More context around current line
+```
+
+### Debugging Tests
+
+```php
+public function test_user_creation() {
+    $user = User::factory()->create();
+    
+    \Psy\debug();
+    
+    $this->assertDatabaseHas('users', ['email' => $user->email]);
+}
+```
+
+```php
+>>> whereami
+From tests/Feature/UserTest.php:15:
+   
+   12|     $user = User::factory()->create();
+   13|     
+▸  14|     $this->assertDatabaseHas('users', ['email' => $user->email]);
+   15| }
+
+>>> dump $user
+```
+
+### Exploring Legacy Code
+
+```php
+// In some mystery function
+\Psy\debug();
+```
+
+```php
+>>> whereami -f      # See the whole file
+>>> doc $someObject  # What is this?
+>>> ls $someObject   # What can it do?
+```
+
+## File Path Display
+
+File paths are shown relative to the current working directory when possible:
+
+```php
+From src/Services/UserService.php:42:  # Relative
+From /var/www/html/app/Models/User.php:15:  # Absolute if outside CWD
+```
+
+## Eval'd Code
+
+If you're debugging code that was `eval()`'d, `whereami` attempts to show the original source:
+
+```php
+file.php(20) : eval()'d code
+```
+
+PsySH extracts and displays the actual file contents from line 20.
+
+## See Also
+
+- [trace](/commands/trace) - Show the current call stack
+- [show --ex](/commands/show#exception-context) - View exception context  
+- [wtf](/commands/wtf) - View exception backtraces
+- [ls](/commands/ls) - List available variables

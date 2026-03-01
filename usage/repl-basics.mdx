@@ -1,0 +1,271 @@
+---
+title: REPL Basics
+description: Learn how to use the PsySH REPL for interactive PHP development
+---
+
+PsySH is a runtime developer console, interactive debugger and REPL (Read-Eval-Print Loop) for PHP. This guide covers the basics of using the REPL.
+
+## Starting the REPL
+
+<Steps>
+  <Step title="Launch PsySH">
+    Run the PsySH command to start an interactive session:
+
+    ```bash
+    psysh
+    ```
+
+    You'll see the PsySH prompt:
+
+    ```bash
+    Psy Shell v0.12.20 (PHP 8.3.0 — cli) by Justin Hileman
+    >>>
+    ```
+  </Step>
+
+  <Step title="Execute PHP Code">
+    Type any PHP expression at the prompt:
+
+    ```php
+    >>> $name = 'World'
+    => "World"
+    >>> echo "Hello, {$name}!"
+    Hello, World!
+    ```
+
+    <Note>
+      The `=>` prefix shows the return value of your expression.
+    </Note>
+  </Step>
+
+  <Step title="Use Commands">
+    PsySH includes built-in commands prefixed with a colon or period:
+
+    ```php
+    >>> help
+    >>> ls
+    >>> doc array_map
+    ```
+  </Step>
+</Steps>
+
+## Interactive Features
+
+### Multi-line Input
+
+PsySH automatically detects incomplete statements and prompts for more input:
+
+```php
+>>> function greet($name) {
+...   return "Hello, {$name}!";
+... }
+=> null
+>>> greet('Alice')
+=> "Hello, Alice!"
+```
+
+<Tip>
+  Use a backslash `\` at the end of a line to continue input on the next line, even if the statement is complete.
+</Tip>
+
+### Code Buffer Management
+
+The code buffer holds your multi-line input as you type:
+
+```php
+>>> $items = [
+...   'apple',
+...   'banana',
+...   'cherry'
+... ];
+```
+
+<Accordion title="Buffer Commands">
+  - **clear** - Clear the code buffer
+  - **buffer** - Show the current code buffer contents
+  - Press **Ctrl+D** while in an incomplete expression to clear the buffer
+</Accordion>
+
+## Loading Files
+
+### Include Files at Startup
+
+Load PHP files when starting PsySH:
+
+```bash
+psysh config.php helpers.php
+```
+
+### Include Files During Session
+
+Use standard PHP include statements:
+
+```php
+>>> require 'vendor/autoload.php'
+>>> include 'my-functions.php'
+```
+
+## Working with Output
+
+### Return Values
+
+Every expression shows its return value:
+
+```php
+>>> 2 + 2
+=> 4
+>>> strlen('hello')
+=> 5
+>>> [1, 2, 3]
+=> [
+     1,
+     2,
+     3,
+   ]
+```
+
+### Standard Output
+
+Printed output appears without the `=>` prefix:
+
+```php
+>>> echo "Debug info\n"
+Debug info
+>>> var_dump(['a' => 1, 'b' => 2])
+array(2) {
+  ["a"]=>
+  int(1)
+  ["b"]=>
+  int(2)
+}
+```
+
+<Note>
+  Lines ending without a newline show a special indicator (`⏎`) to make it clear where output ends.
+</Note>
+
+## Exiting the REPL
+
+<Tabs>
+  <Tab title="exit command">
+    Use the `exit` command:
+
+    ```php
+    >>> exit
+    ```
+  </Tab>
+
+  <Tab title="Keyboard Shortcut">
+    Press **Ctrl+D** at an empty prompt:
+
+    ```php
+    >>>
+    ```
+    
+    Then press `Ctrl+D` to exit.
+  </Tab>
+</Tabs>
+
+## Error Handling
+
+PsySH catches exceptions and displays them with helpful formatting:
+
+```php
+>>> throw new Exception('Something went wrong')
+
+  Exception with message 'Something went wrong'
+
+>>> 1 / 0
+
+  Warning: Division by zero
+```
+
+<Warning>
+  Errors don't crash the REPL - you can continue working after an exception or error occurs.
+</Warning>
+
+## Tab Completion
+
+Press **Tab** to autocomplete:
+
+- Variable names: `$my` → `$myVariable`
+- Function names: `array_` → shows all array functions
+- Class names: `Date` → `DateTime`, `DateTimeZone`, etc.
+- Object methods: `$obj->` → shows all methods
+- Constants: `PHP_` → shows PHP constants
+
+```php
+>>> $datetime = new DateTime();
+>>> $datetime->[TAB]
+# Shows: add, createFromFormat, diff, format, getTimezone, modify, setDate, ...
+```
+
+## Configuration
+
+PsySH looks for configuration in:
+
+- `~/.config/psysh/config.php`
+- `~/.psysh/rc.php`
+- `.psysh.php` in the current directory (project-specific)
+
+### Example Configuration
+
+```php
+<?php
+// ~/.config/psysh/config.php
+
+return [
+    'defaultIncludes' => [
+        __DIR__ . '/bootstrap.php',
+    ],
+    'startupMessage' => 'Welcome to my custom PsySH!',
+    'requireSemicolons' => false,
+    'useUnicode' => true,
+];
+```
+
+<Tip>
+  Run `psysh --info` to see your current configuration and environment details.
+</Tip>
+
+## Interactive vs Non-Interactive Mode
+
+### Non-Interactive Mode
+
+Execute PHP code from stdin:
+
+```bash
+echo '<?php echo 2 + 2;' | psysh
+# Output: 4
+```
+
+### Raw Output Mode
+
+Use `--raw-output` for machine-readable output:
+
+```bash
+echo '<?php ["a", "b", "c"];' | psysh --raw-output
+# Output: array (0 => 'a', 1 => 'b', 2 => 'c')
+```
+
+## Working Directory
+
+Set the working directory when starting PsySH:
+
+```bash
+psysh --cwd /path/to/project
+```
+
+This is useful when your project's autoloader or configuration depends on the working directory.
+
+## Input Validation
+
+By default, PsySH validates and cleans your input before execution. This can be disabled with the `--yolo` flag:
+
+```bash
+psysh --yolo
+```
+
+<Warning>
+  The `--yolo` flag disables input validation. This can lead to unexpected behavior and is not recommended for normal use.
+</Warning>

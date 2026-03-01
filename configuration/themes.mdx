@@ -1,0 +1,380 @@
+---
+title: Themes
+description: Customize PsySH's appearance with themes, colors, and prompt styles
+---
+
+PsySH's theme system allows you to customize colors, prompts, and output formatting to match your preferences and terminal environment.
+
+## Built-in Themes
+
+PsySH includes three built-in themes:
+
+<Tabs>
+  <Tab title="modern">
+    The default theme with clean, minimal prompts and full color support.
+    
+    ```php
+    'theme' => 'modern',
+    ```
+    
+    **Prompts:**
+    - Main: `> `
+    - Buffer (multi-line): `. `
+    - Replay: `- `
+    - Return value: `= `
+    
+    **Output:** Standard spacing with full syntax highlighting
+  </Tab>
+  
+  <Tab title="compact">
+    Same colors as modern, but with more compact output formatting.
+    
+    ```php
+    'theme' => 'compact',
+    ```
+    
+    **Prompts:** Same as modern
+    
+    **Output:** Condensed spacing, less whitespace between elements
+  </Tab>
+  
+  <Tab title="classic">
+    Traditional REPL appearance with classic `>>>` prompts.
+    
+    ```php
+    'theme' => 'classic',
+    ```
+    
+    **Prompts:**
+    - Main: `>>> `
+    - Buffer: `... `
+    - Replay: `--> `
+    - Return value: `=>  `
+    
+    **Output:** Compact formatting like Python's REPL
+  </Tab>
+</Tabs>
+
+## Custom Themes
+
+Create custom themes by passing an array of configuration options:
+
+```php config.php
+return [
+    'theme' => [
+        // Prompts
+        'prompt' => '>> ',
+        'bufferPrompt' => '.. ',
+        'replayPrompt' => '-> ',
+        'returnValue' => '=> ',
+        
+        // Output formatting
+        'compact' => true,
+        
+        // Color fallback (when 'gray' is unavailable)
+        'grayFallback' => 'blue',
+        
+        // Custom styles (see Color Customization below)
+        'styles' => [
+            'error' => ['white', 'red', ['bold']],
+            'warning' => ['black', 'yellow'],
+        ],
+    ],
+];
+```
+
+## Theme Options
+
+<ParamField path="compact" type="bool" default="false">
+  Use compact output formatting
+  
+  ```php
+  'theme' => ['compact' => true],
+  ```
+</ParamField>
+
+<ParamField path="prompt" type="string" default="'> '">
+  Main input prompt string
+  
+  ```php
+  'theme' => ['prompt' => '>>> '],
+  ```
+</ParamField>
+
+<ParamField path="bufferPrompt" type="string" default="'. '">
+  Prompt for multi-line input continuation
+  
+  ```php
+  'theme' => ['bufferPrompt' => '... '],
+  ```
+</ParamField>
+
+<ParamField path="replayPrompt" type="string" default="'- '">
+  Prompt when replaying history
+  
+  ```php
+  'theme' => ['replayPrompt' => '--> '],
+  ```
+</ParamField>
+
+<ParamField path="returnValue" type="string" default="'= '">
+  Marker displayed before return values
+  
+  ```php
+  'theme' => ['returnValue' => '=> '],
+  ```
+</ParamField>
+
+<ParamField path="grayFallback" type="string" default="'blue'">
+  Fallback color when 'gray' is not available in the terminal
+  
+  ```php
+  'theme' => ['grayFallback' => 'cyan'],
+  ```
+</ParamField>
+
+<ParamField path="styles" type="array" default="(see Color Customization)">
+  Custom color styles for syntax highlighting and output
+  
+  ```php
+  'theme' => [
+      'styles' => [
+          'error' => ['white', 'red', ['bold']],
+      ],
+  ],
+  ```
+</ParamField>
+
+## Color Customization
+
+Customize colors by defining styles in your theme. Each style is an array with three elements:
+
+```php
+[foreground, background, options]
+```
+
+Any element can be `null` or omitted:
+
+```php
+'styles' => [
+    'error' => ['white', 'red', ['bold']],     // Full specification
+    'warning' => ['black', 'yellow'],          // No options
+    'strong' => [null, null, ['bold']],        // Only options
+    'info' => ['cyan'],                        // Only foreground
+],
+```
+
+### Available Styles
+
+You can customize any of these styles:
+
+#### General Output Styles
+
+<CodeGroup>
+```php Info/Warning/Error
+'styles' => [
+    'info' => ['white', 'blue', ['bold']],
+    'warning' => ['black', 'yellow'],
+    'error' => ['white', 'red', ['bold']],
+    'whisper' => ['gray'],
+],
+```
+
+```php Text Emphasis
+'styles' => [
+    'aside' => ['blue'],
+    'strong' => [null, null, ['bold']],
+    'return' => ['cyan'],
+    'urgent' => ['red'],
+    'hidden' => ['black'],
+],
+```
+</CodeGroup>
+
+#### PHP Keyword Styles
+
+```php
+'styles' => [
+    'public' => [null, null, ['bold']],
+    'protected' => ['yellow'],
+    'private' => ['red'],
+    'global' => ['cyan', null, ['bold']],
+    'const' => ['cyan'],
+    'class' => ['blue', null, ['underscore']],
+    'function' => [null],
+    'virtual' => ['magenta'],
+    'default' => [null],
+],
+```
+
+#### Type and Value Styles
+
+```php
+'styles' => [
+    'number' => ['magenta'],
+    'integer' => ['magenta'],
+    'float' => ['yellow'],
+    'string' => ['green'],
+    'bool' => ['cyan'],
+    'keyword' => ['yellow'],
+    'comment' => ['blue'],
+    'code_comment' => ['gray'],
+    'object' => ['blue'],
+    'resource' => ['yellow'],
+    'inline_html' => ['cyan'],
+],
+```
+
+### Available Colors
+
+Foreground and background colors:
+- `black`
+- `red`
+- `green`
+- `yellow`
+- `blue`
+- `magenta`
+- `cyan`
+- `white`
+- `gray` (may fall back to `grayFallback` on some terminals)
+- `null` (default/transparent)
+
+### Available Options
+
+Text formatting options:
+- `bold`
+- `underscore`
+- `blink`
+- `reverse`
+- `conceal`
+
+## Example Custom Themes
+
+### Dark Theme
+
+```php config.php
+return [
+    'theme' => [
+        'prompt' => '⚡ ',
+        'bufferPrompt' => '  ',
+        'returnValue' => '↪ ',
+        'styles' => [
+            'error' => ['red', null, ['bold']],
+            'warning' => ['yellow', null, ['bold']],
+            'info' => ['cyan'],
+            'string' => ['green'],
+            'number' => ['magenta'],
+            'bool' => ['yellow'],
+            'class' => ['cyan', null, ['bold']],
+            'function' => ['yellow'],
+            'comment' => ['gray'],
+        ],
+    ],
+];
+```
+
+### Minimal Theme
+
+```php config.php
+return [
+    'theme' => [
+        'compact' => true,
+        'prompt' => '→ ',
+        'bufferPrompt' => '  ',
+        'returnValue' => '  ',
+        'styles' => [
+            // Use mostly default terminal colors
+            'error' => ['red'],
+            'warning' => ['yellow'],
+            'string' => ['green'],
+            'number' => ['blue'],
+        ],
+    ],
+];
+```
+
+### High Contrast Theme
+
+```php config.php
+return [
+    'theme' => [
+        'styles' => [
+            'error' => ['white', 'red', ['bold']],
+            'warning' => ['black', 'yellow', ['bold']],
+            'info' => ['white', 'blue', ['bold']],
+            'string' => ['green', null, ['bold']],
+            'number' => ['magenta', null, ['bold']],
+            'bool' => ['cyan', null, ['bold']],
+            'class' => ['white', null, ['bold', 'underscore']],
+            'public' => ['green', null, ['bold']],
+            'protected' => ['yellow', null, ['bold']],
+            'private' => ['red', null, ['bold']],
+        ],
+    ],
+];
+```
+
+## Setting Themes via Command Line
+
+You can switch to the compact theme using the `--compact` flag:
+
+```bash
+psysh --compact
+```
+
+For other themes or custom configurations, use a config file.
+
+## Programmatic Theme Configuration
+
+You can also create and configure themes programmatically:
+
+```php config.php
+use Psy\Output\Theme;
+
+// Create a theme instance
+$theme = new Theme('modern');
+$theme->setCompact(true);
+$theme->setPrompt('>> ');
+
+// Apply to config
+$config->setTheme($theme);
+
+// Or create from array
+$config->setTheme([
+    'compact' => true,
+    'prompt' => '>> ',
+]);
+```
+
+## Color Mode Control
+
+Control when colors are used:
+
+```php config.php
+return [
+    'colorMode' => 'auto',     // Auto-detect (default)
+    'colorMode' => 'forced',   // Always use colors
+    'colorMode' => 'disabled', // Never use colors
+];
+```
+
+Or via command line:
+
+```bash
+psysh --color      # Force colors
+psysh --no-color   # Disable colors
+```
+
+## Tips
+
+<Note>
+  **Test Your Theme**: Colors may appear different depending on your terminal emulator's color scheme. Test your custom theme in your actual terminal environment.
+</Note>
+
+<Note>
+  **Use Unicode Carefully**: Unicode characters in prompts (like `⚡` or `→`) require `useUnicode => true` (the default) and a terminal with Unicode support.
+</Note>
+
+<Note>
+  **Gray Color**: The `gray` color isn't available on all terminals. Use the `grayFallback` option to specify an alternative color when gray is unavailable.
+</Note>

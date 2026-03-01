@@ -1,0 +1,337 @@
+---
+title: Framework Integrations
+description: Integrate PsySH into Laravel, Symfony, and other PHP frameworks
+---
+
+PsySH can be integrated into your PHP application or framework to provide interactive debugging and exploration capabilities.
+
+## Laravel Integration
+
+Laravel includes PsySH out of the box through the `php artisan tinker` command.
+
+### Using Tinker
+
+```bash
+php artisan tinker
+```
+
+This starts a PsySH session with your Laravel application fully bootstrapped, giving you access to:
+
+- All Eloquent models
+- Service container bindings
+- Facades and helpers
+- Application configuration
+
+### Example Usage
+
+```php
+>>> $users = App\Models\User::all();
+>>> $users->count()
+=> 42
+
+>>> Cache::put('key', 'value', 60)
+=> true
+
+>>> config('app.name')
+=> "My Laravel App"
+```
+
+### Custom Configuration
+
+Create a `.psysh.php` file in your project root:
+
+```php
+return [
+    'defaultIncludes' => [
+        __DIR__.'/bootstrap/helpers.php',
+    ],
+    'startupMessage' => '<info>Laravel Tinker</info>',
+];
+```
+
+## Symfony Integration
+
+PsySH can be used with Symfony applications for interactive debugging.
+
+### Installation
+
+```bash
+composer require --dev psy/psysh
+```
+
+### Creating a Console Command
+
+Create a custom console command to bootstrap your Symfony app:
+
+```php
+namespace App\Command;
+
+use Psy\Shell;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+
+class ShellCommand extends Command
+{
+    protected static $defaultName = 'app:shell';
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $shell = new Shell();
+        $shell->setScopeVariables([
+            'container' => $this->getApplication()->getKernel()->getContainer(),
+        ]);
+        $shell->run();
+
+        return Command::SUCCESS;
+    }
+}
+```
+
+### Usage
+
+```bash
+php bin/console app:shell
+```
+
+```php
+>>> $container->get('doctrine')->getManager()
+=> Doctrine\ORM\EntityManager {#123}
+
+>>> $container->getParameter('kernel.environment')
+=> "dev"
+```
+
+## WordPress Integration
+
+### Installation
+
+Install PsySH globally or in your project:
+
+```bash
+composer require --dev psy/psysh
+```
+
+### WP-CLI Integration
+
+If you use WP-CLI, you can use the shell command:
+
+```bash
+wp shell
+```
+
+This provides a PsySH session with WordPress loaded.
+
+### Manual Integration
+
+Create a `shell.php` file in your WordPress root:
+
+```php
+<?php
+require_once __DIR__ . '/wp-load.php';
+require_once __DIR__ . '/vendor/autoload.php';
+
+$shell = new \Psy\Shell();
+$shell->run();
+```
+
+Run it with:
+
+```bash
+php shell.php
+```
+
+## Custom Framework Integration
+
+### Basic Integration
+
+For any PHP application, you can integrate PsySH by:
+
+1. **Install PsySH**:
+
+```bash
+composer require --dev psy/psysh
+```
+
+2. **Create a shell script** (`shell.php`):
+
+```php
+<?php
+
+require __DIR__ . '/vendor/autoload.php';
+
+// Bootstrap your application
+require __DIR__ . '/bootstrap/app.php';
+
+// Create shell with application context
+$shell = new \Psy\Shell();
+
+// Add application objects to scope
+$shell->setScopeVariables([
+    'app' => $app,
+    'config' => $config,
+    'db' => $database,
+]);
+
+// Add custom commands
+$shell->addCommands([
+    new \App\Shell\CustomCommand(),
+]);
+
+$shell->run();
+```
+
+3. **Run the shell**:
+
+```bash
+php shell.php
+```
+
+### Adding Custom Commands
+
+Extend PsySH with application-specific commands:
+
+```php
+use Psy\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+
+class ClearCacheCommand extends Command
+{
+    protected function configure()
+    {
+        $this->setName('clear-cache')
+             ->setDescription('Clear application cache');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        // Clear your cache
+        cache_clear();
+        
+        $output->writeln('<info>Cache cleared!</info>');
+        return 0;
+    }
+}
+```
+
+Add it to your shell:
+
+```php
+$shell->addCommands([new ClearCacheCommand()]);
+```
+
+## Programmatic Usage
+
+### Embedding PsySH
+
+You can embed PsySH anywhere in your code for interactive debugging:
+
+```php
+function debug_here($context = [])
+{
+    extract($context);
+    eval(\Psy\sh());
+}
+
+// Use in your code
+$user = User::find(1);
+debug_here(compact('user'));
+```
+
+### Breakpoint Debugging
+
+Set breakpoints using the `extract` function:
+
+```php
+use function Psy\sh;
+
+// In your code
+foreach ($items as $item) {
+    if ($item->id === 42) {
+        extract(compact('item', 'items'));
+        eval(sh());
+    }
+}
+```
+
+<Note>
+When embedding PsySH, make sure to remove or disable these calls in production environments.
+</Note>
+
+## Configuration Per Framework
+
+### Project-Specific Config
+
+Each framework can have its own PsySH configuration in the project root:
+
+```php
+// .psysh.php
+return [
+    'defaultIncludes' => [
+        __DIR__ . '/config/helpers.php',
+    ],
+    'startupMessage' => '<info>Welcome to MyFramework Shell</info>',
+    'colorMode' => \Psy\Configuration::COLOR_MODE_FORCED,
+];
+```
+
+### Loading Application State
+
+Pre-load commonly used objects:
+
+```php
+$shell = new \Psy\Shell();
+$shell->setScopeVariables([
+    'app' => $application,
+    'router' => $application->router,
+    'db' => $application->database,
+    'cache' => $application->cache,
+    'log' => $application->logger,
+]);
+```
+
+Now these are available immediately:
+
+```php
+>>> ls
+Variables: $app, $router, $db, $cache, $log
+
+>>> $db->query('SELECT COUNT(*) FROM users')
+=> 1337
+```
+
+## Best Practices
+
+<Accordion title="Keep development-only">
+  Install PsySH as a development dependency:
+  
+  ```bash
+  composer require --dev psy/psysh
+  ```
+  
+  Never load PsySH in production code paths.
+</Accordion>
+
+<Accordion title="Use project trust">
+  When working with multiple projects, use the [project trust system](/advanced/project-trust) to securely load project-specific autoloaders:
+  
+  ```bash
+  psysh --trust-project
+  ```
+</Accordion>
+
+<Accordion title="Provide helpful startup context">
+  Configure a startup message that tells developers what's available:
+  
+  ```php
+  'startupMessage' => 
+      "<info>MyApp Shell</info>\n" .
+      "Variables: \$app, \$db, \$cache\n" .
+      "Commands: clear-cache, db-migrate",
+  ```
+</Accordion>
+
+<Accordion title="Add custom commands for common tasks">
+  Create framework-specific commands for common debugging tasks like clearing caches, running migrations, or inspecting application state.
+</Accordion>

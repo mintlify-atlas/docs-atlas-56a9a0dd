@@ -1,80 +1,265 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get started with PsySH in minutes
 ---
 
-## Get started in three steps
+Get up and running with PsySH quickly. This guide will walk you through starting the REPL, running basic commands, and debugging your first application.
 
-Get your documentation site running locally and make your first customization.
+## Prerequisites
 
-### Step 1: Set up your local environment
+Before you begin, make sure you have:
+- PHP 7.4 or later installed
+- PsySH installed (see [Installation](/installation))
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+## Starting PsySH
 
-### Step 2: Deploy your changes
+<Steps>
+  <Step title="Launch the shell">
+    Simply run `psysh` from your terminal:
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    ```bash
+    psysh
+    ```
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    You'll see the PsySH prompt:
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+    ```
+    Psy Shell v0.12.20 (PHP 8.2.0 — cli) by Justin Hileman
+    >>>
+    ```
+  </Step>
 
-### Step 3: Go live
+  <Step title="Try some PHP code">
+    Start typing PHP code at the prompt:
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    ```php
+    >>> $message = 'Hello, PsySH!'
+    => "Hello, PsySH!"
 
-## Next steps
+    >>> echo $message
+    Hello, PsySH!
+    => null
 
-Now that you have your docs running, explore these key features:
+    >>> $numbers = [1, 2, 3, 4, 5]
+    => [
+         1,
+         2,
+         3,
+         4,
+         5,
+       ]
+
+    >>> array_sum($numbers)
+    => 15
+    ```
+
+    PsySH evaluates each expression and shows you the return value.
+  </Step>
+
+  <Step title="Use built-in commands">
+    PsySH includes powerful built-in commands. Try `help` to see all available commands:
+
+    ```php
+    >>> help
+    ```
+
+    List all available functions:
+
+    ```php
+    >>> ls
+    ```
+
+    Get documentation for a function:
+
+    ```php
+    >>> doc array_map
+    ```
+  </Step>
+</Steps>
+
+## Essential Commands
+
+Here are the most commonly used PsySH commands:
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="help" icon="circle-question" href="/commands/other#help">
+    Show all available commands and their usage
+  </Card>
+  <Card title="ls" icon="list" href="/commands/ls">
+    List variables, functions, classes, and more
+  </Card>
+  <Card title="doc" icon="book" href="/commands/doc">
+    Show documentation for functions, classes, and methods
+  </Card>
+  <Card title="show" icon="code" href="/commands/show">
+    Display the source code for a function or class
+  </Card>
 </CardGroup>
 
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+## Exploring Code
+
+PsySH excels at code introspection. Let's explore a class:
+
+```php
+>>> class User {
+...     private $name;
+...     private $email;
+...     
+...     public function __construct($name, $email) {
+...         $this->name = $name;
+...         $this->email = $email;
+...     }
+...     
+...     public function getName() {
+...         return $this->name;
+...     }
+... }
+=> null
+
+>>> $user = new User('Alice', 'alice@example.com')
+=> User {#123}
+
+>>> ls $user
+Class Methods:
+  __construct   getName
+
+>>> show $user->getName
+  public function getName() {
+      return $this->name;
+  }
+```
+
+## Debugging with \Psy\debug()
+
+The real power of PsySH comes from debugging your running application. Add a debug breakpoint anywhere in your code:
+
+```php
+<?php
+
+function processOrder($order) {
+    $total = 0;
+    
+    foreach ($order['items'] as $item) {
+        // Break into PsySH to inspect variables
+        \Psy\debug(get_defined_vars(), $this);
+        
+        $total += $item['price'] * $item['quantity'];
+    }
+    
+    return $total;
+}
+```
+
+When this code runs, PsySH will start at the breakpoint. You can:
+- Inspect `$order`, `$item`, and `$total`
+- Modify variables to test different scenarios
+- Call functions to test behavior
+- Continue execution when ready
+
+### Two-Way Debugging
+
+Use `extract()` to modify variables in your running code:
+
+```php
+foreach ($items as $item) {
+    extract(\Psy\debug(get_defined_vars()));
+    // Changes you make in the shell affect the running code
+    var_dump($item); // will be whatever you set $item to in PsySH
+}
+```
+
+## Quick Debugging with eval(\Psy\sh())
+
+For a one-liner debug breakpoint, use:
+
+```php
+eval(\Psy\sh());
+```
+
+This drops you into a PsySH session with all the current context available.
+
+## Working with APIs
+
+PsySH is perfect for testing APIs and exploring libraries:
+
+```php
+>>> $client = new GuzzleHttp\Client()
+=> GuzzleHttp\Client {#456}
+
+>>> $response = $client->get('https://api.example.com/users')
+=> GuzzleHttp\Psr7\Response {#789}
+
+>>> $data = json_decode($response->getBody(), true)
+=> [
+     [
+       "id" => 1,
+       "name" => "Alice",
+     ],
+     [
+       "id" => 2,
+       "name" => "Bob",
+     ],
+   ]
+
+>>> $data[0]['name']
+=> "Alice"
+```
+
+## Tips for Productivity
+
+<Accordion title="Use command history">
+  Press the Up arrow to cycle through previous commands. Your history is saved between sessions.
+  
+  Search history with:
+  ```php
+  >>> history --grep array
+  ```
+</Accordion>
+
+<Accordion title="Tab completion">
+  Press Tab to auto-complete variable names, function names, and class names:
+  
+  ```php
+  >>> $myLongVariable = 'test'
+  >>> $myL<Tab>  # completes to $myLongVariable
+  ```
+</Accordion>
+
+<Accordion title="Magic variables">
+  PsySH provides special variables:
+  
+  - `$_` - The result of the last expression
+  - `$_e` - The last exception thrown
+  - `$__out` - Captured output from the last command
+  
+  Learn more in [Magic Variables](/usage/magic-variables).
+</Accordion>
+
+<Accordion title="Debugging exceptions">
+  When an exception is thrown, use the `wtf` command to see the stack trace:
+  
+  ```php
+  >>> throw new Exception('Something went wrong')
+  Exception: Something went wrong
+  
+  >>> wtf
+  # Shows detailed stack trace
+  ```
+</Accordion>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="REPL Basics" icon="terminal" href="/usage/repl-basics">
+    Learn more about using the REPL effectively
+  </Card>
+  <Card title="Commands" icon="list-check" href="/commands/overview">
+    Explore all available commands
+  </Card>
+  <Card title="Configuration" icon="gear" href="/configuration/overview">
+    Customize PsySH to your preferences
+  </Card>
+  <Card title="Debugging Guide" icon="bug" href="/usage/debugging">
+    Master debugging techniques
+  </Card>
+</CardGroup>

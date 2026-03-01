@@ -1,0 +1,375 @@
+---
+title: "Global Functions"
+description: "PsySH global helper functions"
+---
+
+PsySH provides global helper functions for debugging and interactive shell access.
+
+## \\Psy\\debug()
+
+Invoke a PsySH REPL from the current context.
+
+```php
+function \Psy\debug(array $vars = [], $bindTo = null): array
+```
+
+<ParamField path="vars" type="array" default="[]">
+  Scope variables from the calling context (typically from `get_defined_vars()`)
+</ParamField>
+
+<ParamField path="bindTo" type="object|string" optional>
+  Bound object ($this) or class (self) value for the shell
+</ParamField>
+
+<ResponseField name="return" type="array">
+  Scope variables from the debugger session (extract these to affect calling context)
+</ResponseField>
+
+### Basic Usage
+
+```php
+foreach ($items as $item) {
+    \Psy\debug(get_defined_vars());
+    // Interactive shell opens here with access to $items, $item, etc.
+}
+```
+
+### Affecting Caller Context
+
+If you want your shell interaction to affect the state of the calling context, `extract()` the returned values:
+
+```php
+foreach ($items as $item) {
+    extract(\Psy\debug(get_defined_vars()));
+    var_dump($item); // will be whatever you set $item to in the shell
+}
+```
+
+### With Object Binding
+
+Supply an object as `$bindTo` to set `$this` and enable access to private/protected members:
+
+```php
+class Foo {
+    private $secret = 'hidden';
+    
+    public function bar() {
+        \Psy\debug(get_defined_vars(), $this);
+        // In shell: $this->secret is accessible
+    }
+}
+```
+
+### With Class Binding
+
+Pass a class name as `$bindTo` for static context (makes `self` work):
+
+```php
+class Foo {
+    private static $secret = 'hidden';
+    
+    public static function bar() {
+        \Psy\debug(get_defined_vars(), get_called_class());
+        // In shell: self::$secret is accessible
+    }
+}
+```
+
+### Complete Example
+
+```php
+use function Psy\debug;
+
+function processOrder($order) {
+    $customer = $order->customer;
+    $items = $order->items;
+    $total = 0;
+    
+    foreach ($items as $item) {
+        $total += $item->price * $item->quantity;
+        
+        // Drop into debugger to inspect state
+        extract(debug(get_defined_vars()));
+        
+        // Any variables you modify in the shell are now available here
+    }
+    
+    return $total;
+}
+```
+
+## \\Psy\\sh()
+
+Command to return the eval-able code to startup PsySH.
+
+```php
+function \Psy\sh(): string
+```
+
+<ResponseField name="return" type="string">
+  Eval-able PHP code that starts a PsySH session
+</ResponseField>
+
+### Usage
+
+```php
+eval(\Psy\sh());
+```
+
+This is the most compact way to drop into a PsySH shell. It's equivalent to calling `\Psy\debug()` but works in any context.
+
+### How It Works
+
+The function returns different code depending on PHP version:
+
+<Tabs>
+  <Tab title="PHP 8.0+">
+    ```php
+    if (isset($this)) {
+        \extract(\Psy\debug(\get_defined_vars(), $this));
+    } else {
+        try {
+            static::class;
+            \extract(\Psy\debug(\get_defined_vars(), static::class));
+        } catch (\Error $e) {
+            \extract(\Psy\debug(\get_defined_vars()));
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="PHP 7.4">
+    ```php
+    \extract(\Psy\debug(\get_defined_vars(), 
+        isset($this) ? $this : @\get_called_class()));
+    ```
+  </Tab>
+</Tabs>
+
+### Examples
+
+**Drop into shell anywhere:**
+
+```php
+function myFunction($arg1, $arg2) {
+    $result = $arg1 + $arg2;
+    
+    eval(\Psy\sh());
+    // Interactive shell with access to $arg1, $arg2, $result
+    
+    return $result;
+}
+```
+
+**Inside a class:**
+
+```php
+class MyClass {
+    private $secret = 'hidden';
+    
+    public function myMethod() {
+        eval(\Psy\sh());
+        // Has access to $this and private members
+    }
+}
+```
+
+**Static context:**
+
+```php
+class MyClass {
+    private static $secret = 'hidden';
+    
+    public static function myMethod() {
+        eval(\Psy\sh());
+        // Has access to self:: and private static members
+    }
+}
+```
+
+## \\Psy\\info()
+
+Get debugging info about the current PsySH environment and configuration.
+
+```php
+function \Psy\info(?Configuration $config = null): ?array
+```
+
+<ParamField path="config" type="Configuration" optional>
+  Configuration instance to store for the session. If provided, no info is returned.
+</ParamField>
+
+<ResponseField name="return" type="array|null">
+  Array of environment information, or null if storing config
+</ResponseField>
+
+### Usage
+
+**Get environment info:**
+
+```php
+$info = \Psy\info();
+print_r($info);
+```
+
+**Store config for session:**
+
+```php
+$config = new \Psy\Configuration(['colorMode' => 'forced']);
+\Psy\info($config); // stores config, returns null
+```
+
+### Returned Information
+
+The info array includes:
+
+- **PsySH version** - Current PsySH version
+- **PHP version** - PHP version and OS
+- **Configuration**
+  - Default includes
+  - Semicolon requirements
+  - Strict types setting
+  - Error logging level
+  - Config file paths
+- **Updates**
+  - Update availability
+  - Latest version
+  - Update check interval
+- **Input/Output**
+  - Interactive mode
+  - Color mode
+  - Verbosity
+  - Theme settings
+- **Readline**
+  - Availability and settings
+  - Library version
+  - History configuration
+- **Tab Completion**
+  - Tab completion enabled
+  - Bracketed paste support
+  - Custom matchers
+- **Autoload Warming**
+  - Enabled status
+  - Configured warmers
+- **Manual Documentation**
+  - Manual database file
+  - Manual version and language
+- **Process Control**
+  - Pcntl/Posix availability
+  - Disabled functions
+
+### Example Output
+
+```php
+array (
+  'PsySH version' => 'v0.12.20',
+  'PHP version' => '8.2.0',
+  'OS' => 'Darwin',
+  'default includes' => array (),
+  'require semicolons' => false,
+  'strict types' => false,
+  'config file' => 
+  array (
+    'default config file' => '~/.config/psysh/config.php',
+    'local config file' => null,
+  ),
+  'updates' => 
+  array (
+    'update available' => false,
+    'latest release version' => 'v0.12.20',
+  ),
+  // ... more info
+)
+```
+
+## Comparison Guide
+
+| Function | Use Case | Returns Variables |
+|----------|----------|-------------------|
+| `\Psy\debug()` | Full control, explicit variable passing | Yes |
+| `\Psy\sh()` | Minimal code, drop-in anywhere | Yes (via extract) |
+| `\Psy\info()` | Get environment information | N/A |
+
+## Best Practices
+
+<Tabs>
+  <Tab title="Quick Debugging">
+    **For quick one-liner debugging:**
+    
+    ```php
+    eval(\Psy\sh());
+    ```
+  </Tab>
+  
+  <Tab title="Explicit Control">
+    **For explicit control and clarity:**
+    
+    ```php
+    \Psy\debug(get_defined_vars());
+    ```
+  </Tab>
+  
+  <Tab title="Modify Context">
+    **To modify calling context:**
+    
+    ```php
+    extract(\Psy\debug(get_defined_vars()));
+    ```
+  </Tab>
+  
+  <Tab title="Object Context">
+    **For object/class debugging:**
+    
+    ```php
+    \Psy\debug(get_defined_vars(), $this);
+    // or for static:
+    \Psy\debug(get_defined_vars(), __CLASS__);
+    ```
+  </Tab>
+</Tabs>
+
+## Full Example
+
+```php
+use function Psy\debug;
+use function Psy\info;
+
+class OrderProcessor {
+    private $database;
+    private $logger;
+    
+    public function __construct($database, $logger) {
+        $this->database = $database;
+        $this->logger = $logger;
+    }
+    
+    public function process($order) {
+        $items = $order->items;
+        $total = 0;
+        
+        foreach ($items as $item) {
+            // Drop into debugger with access to:
+            // - $this (object context)
+            // - $order, $items, $item, $total (local vars)
+            // - private properties via $this
+            
+            extract(debug(get_defined_vars(), $this));
+            
+            // Any modifications in shell affect variables here
+            $total += $item->price * $item->quantity;
+        }
+        
+        return $total;
+    }
+}
+
+// Quick debugging anywhere
+function quickTest() {
+    $x = 1;
+    $y = 2;
+    eval(\Psy\sh()); // Access $x, $y
+}
+
+// Get environment info
+$envInfo = info();
+echo "PsySH version: {$envInfo['PsySH version']}\n";
+```

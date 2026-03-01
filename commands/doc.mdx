@@ -1,0 +1,243 @@
+---
+title: doc Command
+description: Read documentation for functions, classes, methods, properties, and constants
+---
+
+The `doc` command displays documentation for PHP functions, classes, methods, properties, and constants. It extracts information from docblocks and the PHP manual.
+
+## Syntax
+
+```php
+doc [options] <target>
+```
+
+## Aliases
+
+- `rtfm` (Read The Fine Manual)
+- `man` (Manual pages)
+
+## Arguments
+
+<ParamField path="target" type="code" required>
+  Function, class, instance, constant, method, or property to document
+</ParamField>
+
+## Options
+
+<ParamField path="--all" type="flag">
+  **Alias:** `-a`
+  
+  Show documentation for superclasses as well as the current class. Includes parent classes, interfaces, and traits.
+</ParamField>
+
+<ParamField path="--update-manual" type="string">
+  Download and install the latest PHP manual. Optionally specify a language code (e.g., `fr`, `de`, `es`).
+  
+  If no language is specified, uses the current language or defaults to English.
+</ParamField>
+
+## Usage Examples
+
+### Documenting Functions
+
+```php
+>>> doc preg_replace
+```
+
+<Tabs>
+  <Tab title="Output">
+    ```
+    function preg_replace($pattern, $replacement, $subject, $limit = -1, &$count = null)
+    
+    Description:
+      Perform a regular expression search and replace
+    
+    Parameters:
+      $pattern      - The pattern to search for
+      $replacement  - The replacement string or array
+      $subject      - The string or array to search
+      ...
+    ```
+  </Tab>
+</Tabs>
+
+### Documenting Classes
+
+```php
+>>> doc PDO
+>>> doc Psy\Shell
+```
+
+Shows class-level documentation including the class description, constructor, and available methods.
+
+### Documenting Methods
+
+```php
+>>> doc DateTime::format
+>>> doc Psy\Shell::debug
+```
+
+### Documenting Instance Methods
+
+```php
+>>> $shell = new Psy\Shell
+>>> doc $shell->run
+```
+
+You can document methods on instances by using the `->` operator.
+
+### Documenting Properties
+
+```php
+>>> $obj = new MyClass()
+>>> doc $obj->propertyName
+```
+
+### Viewing Inherited Documentation
+
+Use the `--all` flag to see documentation from parent classes:
+
+```php
+>>> doc --all MyChildClass
+```
+
+This will show documentation for `MyChildClass` followed by documentation from:
+- Parent classes
+- Implemented interfaces
+- Used traits
+
+<Tabs>
+  <Tab title="Example">
+    ```php
+    >>> doc --all ArrayIterator
+    ```
+    
+    Shows documentation for `ArrayIterator`, then `Iterator`, `Traversable`, etc.
+  </Tab>
+</Tabs>
+
+### Inheriting Documentation
+
+If a docblock contains `{@inheritdoc}`, the `--all` flag is automatically enabled:
+
+```php
+class Parent {
+    /** Returns the name */
+    public function getName() {}
+}
+
+class Child extends Parent {
+    /** {@inheritdoc} */
+    public function getName() {}
+}
+
+>>> doc Child::getName  // Automatically shows parent docs too
+```
+
+## PHP Manual Integration
+
+### Installing the Manual
+
+PsySH can download and use the official PHP manual for documenting core functions:
+
+```php
+>>> doc --update-manual
+```
+
+<Note>
+  The manual is downloaded from [psysh.org](https://psysh.org) and cached locally for offline use.
+</Note>
+
+### Language Support
+
+Download the manual in different languages:
+
+```php
+>>> doc --update-manual=fr    // French
+>>> doc --update-manual=de    // German  
+>>> doc --update-manual=es    // Spanish
+>>> doc --update-manual=pt_BR // Brazilian Portuguese
+```
+
+<Tabs>
+  <Tab title="After Update">
+    ```php
+    Downloading manual from psysh.org...
+    Download complete. Installing...
+    
+    Restart PsySH to use the updated manual.
+    ```
+  </Tab>
+</Tabs>
+
+### Manual Location
+
+The PHP manual is stored in:
+- Linux/macOS: `~/.local/share/psysh/`
+- Windows: `%APPDATA%/PsySH/`
+
+## Documenting Language Constructs
+
+The `doc` command also works with PHP language constructs:
+
+```php
+>>> doc isset
+>>> doc echo
+>>> doc foreach
+>>> doc array
+```
+
+## When Documentation is Missing
+
+If no docblock exists and the PHP manual is not installed:
+
+```php
+>>> doc some_function
+
+function some_function($arg1, $arg2)
+
+PHP manual not found
+    To document core PHP functionality, download the PHP reference manual:
+    https://github.com/bobthecow/psysh/wiki/PHP-manual
+```
+
+<Warning>
+  User-defined functions without docblocks will only show the function signature.
+</Warning>
+
+## Magic Variables
+
+After running `doc`, several magic variables are set:
+
+- `$__class` - The documented class name
+- `$__method` - The documented method name  
+- `$__function` - The documented function name
+- `$__namespace` - The namespace of the documented element
+
+```php
+>>> doc Psy\Shell::debug
+>>> echo $__class
+Psy\Shell
+>>> echo $__method  
+debug
+```
+
+## Tips
+
+<Tip>
+  Use `rtfm` when you need a reminder of what a function does - it's more fun than typing `doc`!
+</Tip>
+
+<Tip>
+  Combine with `show` to see both documentation and source code:
+  ```php
+  >>> doc MyClass::myMethod
+  >>> show MyClass::myMethod
+  ```
+</Tip>
+
+## See Also
+
+- [show](/commands/show) - View source code
+- [ls](/commands/ls) - List available methods and properties
+- [dump](/commands/dump) - Inspect object values

@@ -1,0 +1,460 @@
+---
+title: ls Command
+description: List variables, methods, properties, constants, functions, and classes
+---
+
+The `ls` command lists variables, constants, classes, interfaces, traits, functions, methods, and properties. Without arguments, it shows variables in the current scope. With a target, it shows members of that class or object.
+
+## Syntax
+
+```php
+ls [options] [target]
+```
+
+## Alias
+
+- `dir`
+
+## Arguments
+
+<ParamField path="target" type="code">
+  A class name or object instance to list members of
+</ParamField>
+
+## Options
+
+### What to List
+
+<ParamField path="--vars" type="flag">
+  Display variables in current scope (default when no target is given)
+</ParamField>
+
+<ParamField path="--constants" type="flag">
+  **Alias:** `-c`
+  
+  Display defined constants
+</ParamField>
+
+<ParamField path="--functions" type="flag">
+  **Alias:** `-f`
+  
+  Display defined functions
+</ParamField>
+
+<ParamField path="--classes" type="flag">
+  **Alias:** `-k`
+  
+  Display declared classes
+</ParamField>
+
+<ParamField path="--interfaces" type="flag">
+  **Alias:** `-I`
+  
+  Display declared interfaces
+</ParamField>
+
+<ParamField path="--traits" type="flag">
+  **Alias:** `-t`
+  
+  Display declared traits
+</ParamField>
+
+<ParamField path="--properties" type="flag">
+  **Alias:** `-p`
+  
+  Display class or object properties (public by default)
+</ParamField>
+
+<ParamField path="--methods" type="flag">
+  **Alias:** `-m`
+  
+  Display class or object methods (public by default)
+</ParamField>
+
+### Filters
+
+<ParamField path="--grep" type="pattern">
+  Filter results by pattern (supports regular expressions)
+</ParamField>
+
+<ParamField path="--insensitive" type="flag">
+  **Alias:** `-i`
+  
+  Make grep search case-insensitive
+</ParamField>
+
+<ParamField path="--invert" type="flag">
+  **Alias:** `-v`
+  
+  Invert the grep search (show non-matching items)
+</ParamField>
+
+<ParamField path="--globals" type="flag">
+  **Alias:** `-g`
+  
+  Include global variables
+</ParamField>
+
+<ParamField path="--internal" type="flag">
+  **Alias:** `-n`
+  
+  Limit to internal (built-in) functions and classes
+</ParamField>
+
+<ParamField path="--user" type="flag">
+  **Alias:** `-u`
+  
+  Limit to user-defined constants, functions, and classes
+</ParamField>
+
+<ParamField path="--category" type="string">
+  **Alias:** `-C`
+  
+  Limit to constants in a specific category (e.g., "date", "pcre")
+</ParamField>
+
+### Display Options
+
+<ParamField path="--all" type="flag">
+  **Alias:** `-a`
+  
+  Include private and protected methods and properties
+</ParamField>
+
+<ParamField path="--long" type="flag">
+  **Alias:** `-l`
+  
+  List in long format: includes class names and full signatures
+</ParamField>
+
+<ParamField path="--no-inherit" type="flag">
+  Exclude inherited methods, properties, and constants
+</ParamField>
+
+## Usage Examples
+
+### List Variables
+
+By default, `ls` shows variables in the current scope:
+
+```php
+>>> $name = 'Alice'
+>>> $age = 30
+>>> ls
+```
+
+<Tabs>
+  <Tab title="Output">
+    ```
+    Variables: $name, $age, $_, $__psysh__
+    ```
+  </Tab>
+</Tabs>
+
+### List Object Members
+
+```php
+>>> $date = new DateTime()
+>>> ls $date
+```
+
+<Tabs>
+  <Tab title="Output">
+    ```
+    Class Methods: __construct, __wakeup, __set_state, createFromFormat, getLastErrors,
+                   format, modify, add, sub, getTimezone, setTimezone, getOffset, setTime,
+                   setDate, setISODate, setTimestamp, getTimestamp, diff
+    ```
+  </Tab>
+</Tabs>
+
+### List Class Members
+
+```php
+>>> ls DateTime
+>>> ls Psy\Shell
+```
+
+By default, shows constants, properties, and methods.
+
+### Long Format
+
+Use `-l` for detailed signatures:
+
+```php
+>>> ls -l DateTime
+```
+
+<Tabs>
+  <Tab title="Output">
+    ```
+    Class Methods:
+      __construct          __construct($datetime = "now", $timezone = null)
+      format               format($format)
+      modify               modify($modifier)  
+      add                  add($interval)
+      sub                  sub($interval)
+      diff                 diff($datetime2, $absolute = false)
+      ...
+    ```
+  </Tab>
+</Tabs>
+
+### Show Private/Protected Members
+
+```php
+>>> ls -a MyClass
+>>> ls --all $myObject
+```
+
+Includes private and protected methods and properties in addition to public ones.
+
+### Filter with Grep
+
+```php
+>>> ls --methods DateTime --grep /format/
+>>> ls -k --grep mongo -i
+>>> ls --functions --grep /^array_/
+```
+
+<Tabs>
+  <Tab title="Example">
+    ```php
+    >>> ls --functions --grep /^str_/ --long
+    ```
+    
+    Shows all functions starting with "str_" in long format:
+    ```
+    Functions:
+      str_replace    str_replace($search, $replace, $subject, &$count = null)
+      str_split      str_split($string, $length = 1)
+      str_pad        str_pad($string, $length, $pad_string = " ", $pad_type = STR_PAD_RIGHT)
+      ...
+    ```
+  </Tab>
+</Tabs>
+
+### List All Classes
+
+```php
+>>> ls --classes
+>>> ls -k
+```
+
+Shows all declared classes in the current session.
+
+### List Classes by Pattern
+
+```php
+>>> ls -k --grep /DateTime/
+>>> ls --classes --grep /^Psy/ -i
+```
+
+### List All Functions
+
+```php
+>>> ls --functions
+>>> ls -f
+```
+
+### List User-Defined Functions
+
+```php
+>>> ls -f --user
+>>> ls --functions -u
+```
+
+<Tabs>
+  <Tab title="Example">
+    ```php
+    function myHelper($arg) { return strtoupper($arg); }
+    
+    >>> ls -f --user
+    User Functions: myHelper
+    ```
+  </Tab>
+</Tabs>
+
+### List Internal Functions
+
+```php
+>>> ls -f --internal --grep /^array/
+```
+
+Shows built-in PHP functions matching the pattern.
+
+### List Constants
+
+```php
+>>> ls --constants
+>>> ls -c
+```
+
+### List Constants by Category
+
+```php
+>>> ls --constants --category date
+>>> ls -c -C pcre
+```
+
+<Tabs>
+  <Tab title="Example">
+    ```php
+    >>> ls -c -C date
+    Constants: DATE_ATOM, DATE_COOKIE, DATE_ISO8601, DATE_RFC822, DATE_RFC850,
+               DATE_RFC1036, DATE_RFC1123, DATE_RFC2822, DATE_RFC3339, DATE_RSS,
+               DATE_W3C, ...
+    ```
+  </Tab>
+</Tabs>
+
+### Exclude Inherited Members
+
+```php
+>>> ls --no-inherit MyChildClass
+```
+
+Shows only members defined directly in `MyChildClass`, not inherited from parents.
+
+### List Global Variables
+
+```php
+>>> ls --vars --globals
+>>> ls -g
+```
+
+Includes global variables like `$_SERVER`, `$_GET`, `$_POST`, etc.
+
+## Advanced Examples
+
+### Find All Array Functions
+
+```php
+>>> ls -f --grep /^array_/ --long
+```
+
+### List Private Methods
+
+```php
+>>> ls -am MyClass
+```
+
+Shows all methods (`-a` includes private) in method-only view (`-m`).
+
+### Search for Specific Properties
+
+```php
+>>> ls -p $object --grep /name/
+```
+
+### List All Traits
+
+```php
+>>> ls --traits
+>>> ls -t
+```
+
+### List Interfaces
+
+```php
+>>> ls --interfaces --grep /Iterator/
+>>> ls -I --grep /Iterator/
+```
+
+## Default Behavior
+
+### Without Target
+
+Defaults to `--vars`:
+```php
+>>> ls
+# Equivalent to: ls --vars
+```
+
+### With Target
+
+Defaults to `--constants --properties --methods`:
+```php
+>>> ls DateTime  
+# Equivalent to: ls --constants --properties --methods DateTime
+```
+
+## Output Format
+
+### Short Format (Default)
+
+Items are listed inline, separated by commas:
+```
+Variables: $foo, $bar, $baz
+Methods: getName, setName, getAge, setAge
+```
+
+### Long Format (`-l`)
+
+Items are listed one per line with full signatures:
+```
+Methods:
+  getName    getName()
+  setName    setName($name)
+  getAge     getAge()  
+  setAge     setAge($age)
+```
+
+## Visibility Indicators
+
+When using `-a` (all), members are color-coded:
+- **Public** - normal color
+- **Protected** - different color
+- **Private** - different color
+
+## Magic Variables
+
+After listing a class or object:
+
+```php
+>>> ls Psy\Shell
+>>> echo $__class
+Psy\Shell
+>>> echo $__namespace  
+Psy
+```
+
+## Tips
+
+<Tip>
+  Combine flags for powerful filtering:
+  ```php
+  >>> ls -al DateTime --grep /set/
+  ```
+  Shows all methods (including private) containing "set" in long format.
+</Tip>
+
+<Tip>
+  Use regular expressions in grep:
+  ```php
+  >>> ls -f --grep "/^(str|array)_/"
+  ```
+  Shows functions starting with "str_" or "array_".
+</Tip>
+
+<Tip>
+  Explore an unknown object:
+  ```php
+  >>> ls -al $unknownObject
+  ```
+  Reveals all properties and methods, including private ones.
+</Tip>
+
+<Warning>
+  Options like `--properties` and `--methods` require a target:
+  ```php
+  >>> ls --properties        # Error!
+  >>> ls --properties $obj   # OK
+  ```
+</Warning>
+
+## See Also
+
+- [doc](/commands/doc) - Read documentation for listed items
+- [show](/commands/show) - View source code
+- [dump](/commands/dump) - Inspect object values

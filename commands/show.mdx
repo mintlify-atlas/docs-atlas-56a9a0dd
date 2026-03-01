@@ -1,0 +1,287 @@
+---
+title: show Command  
+description: Display source code for classes, methods, functions, and exception contexts
+---
+
+The `show` command displays the source code for classes, functions, methods, properties, constants, and files. It can also show the code context where exceptions occurred.
+
+## Syntax
+
+```php
+show [options] <target>
+show --ex [index]
+```
+
+## Arguments
+
+<ParamField path="target" type="code">
+  Function, class, instance, constant, method, property, or file path to show
+</ParamField>
+
+## Options
+
+<ParamField path="--ex" type="integer">
+  Show the last exception context. Optionally specify a stack trace index (1-based).
+  
+  - Without a value: shows the next level up the stack on repeated calls
+  - With a number: shows that specific level of the stack trace
+</ParamField>
+
+## Showing Code
+
+### Show Class Source
+
+```php
+>>> show DateTime
+```
+
+<Tabs>
+  <Tab title="Output">
+    ```php
+    class DateTime implements DateTimeInterface {
+        public function __construct($datetime = "now", $timezone = null) { ... }
+        public function format($format) { ... }
+        public function modify($modifier) { ... }
+        // ... rest of class
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Show Method Source
+
+```php
+>>> show Psy\Shell::debug
+>>> show DateTime::createFromFormat
+```
+
+Displays the complete source code of the method with syntax highlighting.
+
+### Show Function Source
+
+```php
+>>> show array_map
+>>> show preg_match
+```
+
+<Note>
+  Built-in PHP functions written in C will not have visible source code. The command will show the function signature instead.
+</Note>
+
+### Show Instance Methods
+
+```php
+>>> $obj = new MyClass()
+>>> show $obj->someMethod
+```
+
+### Show File Contents
+
+You can show any PHP file by path:
+
+```php
+>>> show /path/to/file.php
+>>> show "./src/MyClass.php"
+```
+
+The file path can be absolute or relative to the current working directory.
+
+<Tabs>
+  <Tab title="Example">
+    ```php
+    >>> show ./vendor/autoload.php
+    ```
+    
+    Displays the entire contents of the autoload file.
+  </Tab>
+</Tabs>
+
+## Exception Context
+
+One of the most powerful features of `show` is displaying code context around exceptions.
+
+### Basic Exception Context
+
+```php
+>>> someFunction()  // throws an exception
+>>> show --ex
+```
+
+<Tabs>
+  <Tab title="Output">
+    ```
+    RuntimeException with message 'Something went wrong'
+    --
+    From src/MyClass.php:42 at level 1 of backtrace (of 5):
+    
+       37| function someFunction() {
+       38|     $data = loadData();
+       39|     if (!$data) {
+       40|         processData($data);
+       41|     }
+    ▸  42|     throw new RuntimeException('Something went wrong');
+       43| }
+       44| 
+       45| function loadData() {
+       46|     return null;
+       47| }
+    ```
+  </Tab>
+</Tabs>
+
+The `▸` marker indicates the exact line where the exception occurred.
+
+### Navigating the Stack Trace
+
+Call `show --ex` multiple times to move up the stack:
+
+```php
+>>> show --ex       // Level 1 (where exception was thrown)
+>>> show --ex       // Level 2 (caller)
+>>> show --ex       // Level 3 (caller's caller)
+```
+
+Each call shows 5 lines before and after the relevant line.
+
+### Jump to Specific Stack Level
+
+```php
+>>> show --ex 1     // Show where exception was thrown
+>>> show --ex 3     // Jump to 3rd level of backtrace
+>>> show --ex 5     // Jump to 5th level
+```
+
+<Tip>
+  Combine with `wtf` to see the full backtrace, then use `show --ex` to inspect specific levels.
+</Tip>
+
+### Exception Context Example
+
+```php
+>>> $pdo = new PDO('invalid:dsn');
+PDOException with message 'could not find driver'
+
+>>> show --ex
+From /app/test.php:3 at level 1 of backtrace (of 1):
+
+    1| <?php
+    2| 
+▸   3| $pdo = new PDO('invalid:dsn');
+    4|
+    5|
+```
+
+## Magic Variables  
+
+After running `show`, magic variables are set based on the context:
+
+### For Code Targets
+
+```php
+>>> show MyApp\UserController::index
+>>> echo $__class
+MyApp\UserController
+>>> echo $__method
+index  
+>>> echo $__namespace
+MyApp
+```
+
+Available magic variables:
+- `$__class` - The class name
+- `$__method` - The method name
+- `$__function` - The function name  
+- `$__namespace` - The namespace
+- `$__file` - The file path
+- `$__dir` - The directory path
+
+### For Exception Contexts
+
+```php
+>>> show --ex
+>>> echo $__file     // File where exception occurred
+>>> echo $__line     // Line number
+>>> echo $__class    // Class if in a method
+>>> echo $__method   // Method name if applicable
+```
+
+## Code Formatting
+
+Source code is displayed with:
+- Syntax highlighting
+- Line numbers
+- Proper indentation
+- Color-coded keywords, strings, and comments
+
+<Note>
+  Code display adapts to your terminal's color capabilities. Modern terminals will show rich syntax highlighting.
+</Note>
+
+## Working with Evaluated Code
+
+If code was evaluated using `eval()`, `show --ex` will attempt to extract the original file and line:
+
+```php
+file.php(15) : eval()'d code
+```
+
+PsySH parses this format and shows the actual source file at the indicated line.
+
+## Error Handling
+
+### No Source Available
+
+For built-in classes or functions without source:
+
+```php
+>>> show PDO::__construct
+
+PDO::__construct($dsn, $username = null, $password = null, $options = null)
+
+RuntimeException: Could not find source code for PDO::__construct
+```
+
+The signature is still displayed, but source code cannot be shown for internal functions.
+
+### Invalid Target
+
+```php
+>>> show nonexistent_function
+
+RuntimeException: Not enough arguments (missing: "target")  
+```
+
+## Tips
+
+<Tip>
+  Use `show` in combination with `ls` to explore a class:
+  ```php
+  >>> ls MyClass              // See available methods
+  >>> show MyClass::method1   // View the implementation  
+  ```
+</Tip>
+
+<Tip>
+  When debugging, `show --ex` is faster than opening files in an editor:
+  ```php
+  >>> someCode()    // Exception!
+  >>> wtf           // See the backtrace
+  >>> show --ex 3   // View the problematic code
+  ```
+</Tip>
+
+<Warning>
+  Variables in file paths must be defined:
+  ```php
+  >>> $file = './src/MyClass.php'
+  >>> show $file   // ✓ Works
+  >>> show $undefined  // ✗ Error
+  ```
+</Warning>
+
+## See Also
+
+- [doc](/commands/doc) - Read documentation
+- [wtf](/commands/wtf) - View exception backtraces  
+- [whereami](/commands/whereami) - Show your current code location
+- [ls](/commands/ls) - List available code elements

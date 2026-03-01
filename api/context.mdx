@@ -1,0 +1,371 @@
+---
+title: "\\Psy\\Context"
+description: "Shell execution context class"
+---
+
+The Shell execution context. Encapsulates current variables, most recent return value and exception, and bound object/class.
+
+## Constructor
+
+### `__construct()`
+
+Create a new Context instance.
+
+```php
+use Psy\Context;
+
+$context = new Context();
+```
+
+## Variable Management
+
+### `get(string $name): mixed`
+
+Get a context variable by name.
+
+<ParamField path="name" type="string" required>
+  Variable name (without $)
+</ParamField>
+
+<ResponseField name="return" type="mixed">
+  Variable value
+</ResponseField>
+
+```php
+$context->setAll(['foo' => 'bar']);
+$value = $context->get('foo'); // 'bar'
+
+// Special variables
+$returnValue = $context->get('_');
+$lastException = $context->get('_e');
+$lastOutput = $context->get('__out');
+$boundObject = $context->get('this');
+```
+
+**Throws:** `InvalidArgumentException` if the variable is not found.
+
+### `getAll(): array`
+
+Get all defined variables.
+
+Includes both regular scope variables and magic variables ($\_, $\_e, $\_\_out, $this, etc.).
+
+<ResponseField name="return" type="array">
+  Associative array of all variables
+</ResponseField>
+
+```php
+$allVars = $context->getAll();
+```
+
+### `getSpecialVariables(): array`
+
+Get all defined magic variables: $\_, $\_e, $\_\_out, $\_\_class, $\_\_file, etc.
+
+<ResponseField name="return" type="array">
+  Associative array of magic variables
+</ResponseField>
+
+```php
+$specialVars = $context->getSpecialVariables();
+// ['_' => ..., '_e' => ..., '__out' => ..., 'this' => ...]
+```
+
+### `setAll(array $vars): void`
+
+Set all scope variables.
+
+This method does **not** set magic variables ($\_, $\_e, $\_\_out, $\_\_class, etc.).
+
+<ParamField path="vars" type="array" required>
+  Associative array of variable names to values
+</ParamField>
+
+```php
+$context->setAll([
+    'foo' => 'bar',
+    'items' => [1, 2, 3],
+    'user' => $userObject,
+]);
+```
+
+## Return Value
+
+### `setReturnValue($value): void`
+
+Set the most recent return value.
+
+This value is available as the `$_` magic variable.
+
+<ParamField path="value" type="mixed" required>
+  Return value to store
+</ParamField>
+
+```php
+$context->setReturnValue(42);
+$value = $context->get('_'); // 42
+```
+
+### `getReturnValue(): mixed`
+
+Get the most recent return value.
+
+<ResponseField name="return" type="mixed">
+  Most recent return value
+</ResponseField>
+
+```php
+$lastReturn = $context->getReturnValue();
+```
+
+## Exception Handling
+
+### `setLastException(Throwable $e): void`
+
+Set the most recent exception or error.
+
+This value is available as the `$_e` magic variable.
+
+<ParamField path="e" type="Throwable" required>
+  Exception or error to store
+</ParamField>
+
+```php
+try {
+    // some code
+} catch (\Exception $e) {
+    $context->setLastException($e);
+}
+```
+
+### `getLastException(): ?Throwable`
+
+Get the most recent exception or error.
+
+<ResponseField name="return" type="Throwable|null">
+  Most recent exception, or null
+</ResponseField>
+
+```php
+$lastException = $context->getLastException();
+```
+
+**Throws:** `InvalidArgumentException` if no exception has been caught.
+
+## Output Capturing
+
+### `setLastStdout(string $lastStdout): void`
+
+Set the most recent output from evaluated code.
+
+This value is available as the `$__out` magic variable.
+
+<ParamField path="lastStdout" type="string" required>
+  Output string to store
+</ParamField>
+
+```php
+$context->setLastStdout('Hello, world!');
+$output = $context->get('__out'); // 'Hello, world!'
+```
+
+### `getLastStdout(): ?string`
+
+Get the most recent output from evaluated code.
+
+<ResponseField name="return" type="string|null">
+  Most recent output, or null
+</ResponseField>
+
+```php
+$lastOutput = $context->getLastStdout();
+```
+
+**Throws:** `InvalidArgumentException` if no output has happened yet.
+
+## Object and Class Binding
+
+### `setBoundObject($boundObject): void`
+
+Set the bound object ($this variable) for the interactive shell.
+
+This makes the object available as `$this` in the REPL, allowing access to private and protected members.
+
+**Note:** This unsets the bound class, if any exists.
+
+<ParamField path="boundObject" type="object|null" required>
+  Object to bind, or null to unbind
+</ParamField>
+
+```php
+class MyClass {
+    private $secret = 'hidden';
+}
+
+$obj = new MyClass();
+$context->setBoundObject($obj);
+// Now $this->secret is accessible in the shell
+```
+
+### `getBoundObject(): ?object`
+
+Get the bound object ($this variable) for the interactive shell.
+
+<ResponseField name="return" type="object|null">
+  Bound object, or null
+</ResponseField>
+
+```php
+$boundObj = $context->getBoundObject();
+```
+
+### `setBoundClass($boundClass): void`
+
+Set the bound class (self) for the interactive shell.
+
+This makes the class available as `self` in the REPL, allowing access to private and protected static members.
+
+**Note:** This unsets the bound object, if any exists.
+
+<ParamField path="boundClass" type="string|null" required>
+  Fully qualified class name, or null to unbind
+</ParamField>
+
+```php
+$context->setBoundClass('App\\MyClass');
+// Now self::$staticProperty is accessible in the shell
+```
+
+### `getBoundClass(): ?string`
+
+Get the bound class (self) for the interactive shell.
+
+<ResponseField name="return" type="string|null">
+  Bound class name, or null
+</ResponseField>
+
+```php
+$boundClass = $context->getBoundClass();
+```
+
+## Command Scope Variables
+
+### `setCommandScopeVariables(array $commandScopeVariables): void`
+
+Set command-scope magic variables: $\_\_class, $\_\_file, $\_\_method, etc.
+
+These are typically set by PsySH commands like `whereami` and `show`.
+
+<ParamField path="commandScopeVariables" type="array" required>
+  Array of command scope variables
+</ParamField>
+
+```php
+$context->setCommandScopeVariables([
+    '__class' => 'App\\MyClass',
+    '__method' => 'myMethod',
+    '__file' => '/path/to/file.php',
+    '__line' => 42,
+]);
+```
+
+### `getCommandScopeVariables(): array`
+
+Get command-scope magic variables.
+
+<ResponseField name="return" type="array">
+  Array of command scope variables
+</ResponseField>
+
+```php
+$commandVars = $context->getCommandScopeVariables();
+```
+
+### `getUnusedCommandScopeVariableNames(): array`
+
+Get unused command-scope magic variable names.
+
+This is used by the shell to unset old command-scope variables after a new batch is set.
+
+<ResponseField name="return" type="array">
+  Array of unused variable names
+</ResponseField>
+
+```php
+$unusedNames = $context->getUnusedCommandScopeVariableNames();
+```
+
+## Static Methods
+
+### `isSpecialVariableName(string $name): bool`
+
+Check whether a variable name is a magic variable.
+
+<ParamField path="name" type="string" required>
+  Variable name (without $)
+</ParamField>
+
+<ResponseField name="return" type="bool">
+  True if the name is a special/magic variable
+</ResponseField>
+
+```php
+$isSpecial = Context::isSpecialVariableName('_'); // true
+$isSpecial = Context::isSpecialVariableName('_e'); // true
+$isSpecial = Context::isSpecialVariableName('foo'); // false
+```
+
+## Magic Variables
+
+The Context class manages these special variables:
+
+| Variable | Description |
+|----------|-------------|
+| `$_` | Most recent return value |
+| `$_e` | Most recent exception |
+| `$__out` | Most recent stdout output |
+| `$this` | Bound object |
+| `$__function` | Current function name (command scope) |
+| `$__method` | Current method name (command scope) |
+| `$__class` | Current class name (command scope) |
+| `$__namespace` | Current namespace (command scope) |
+| `$__file` | Current file path (command scope) |
+| `$__line` | Current line number (command scope) |
+| `$__dir` | Current directory (command scope) |
+
+## Usage Example
+
+```php
+use Psy\Context;
+
+$context = new Context();
+
+// Set up scope variables
+$context->setAll([
+    'app' => $application,
+    'db' => $database,
+    'user' => $currentUser,
+]);
+
+// Bind an object for $this access
+$context->setBoundObject($myObject);
+
+// Simulate code execution
+$context->setReturnValue(42);
+$context->setLastStdout('Hello, world!');
+
+// Access variables
+$allVars = $context->getAll();
+// [
+//     'app' => ...,
+//     'db' => ...,
+//     'user' => ...,
+//     '_' => 42,
+//     '__out' => 'Hello, world!',
+//     'this' => ...,
+// ]
+
+// Get specific values
+$returnValue = $context->getReturnValue(); // 42
+$output = $context->getLastStdout(); // 'Hello, world!'
+```

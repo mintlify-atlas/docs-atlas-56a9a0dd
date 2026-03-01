@@ -1,0 +1,470 @@
+---
+title: Debugging with PsySH
+description: Use \Psy\debug() to drop into interactive debugging sessions
+---
+
+PsySH's most powerful feature is the ability to drop into an interactive debugging session from anywhere in your code using `\Psy\debug()`.
+
+## Quick Start
+
+Add a single line to your code to start debugging:
+
+```php
+<?php
+
+function calculateTotal($items) {
+    $total = 0;
+    foreach ($items as $item) {
+        \Psy\debug();  // Drop into PsySH here
+        $total += $item['price'] * $item['quantity'];
+    }
+    return $total;
+}
+```
+
+When execution reaches `\Psy\debug()`, you'll get an interactive prompt with access to all local variables.
+
+## Basic Usage
+
+### Simple Debugging
+
+The simplest form requires no arguments:
+
+```php
+<?php
+
+$user = User::find(1);
+$orders = $user->orders;
+
+\Psy\debug();  // Inspect $user and $orders interactively
+```
+
+Inside the debugger:
+
+```php
+>>> $user->name
+=> "Alice Johnson"
+>>> count($orders)
+=> 5
+>>> $orders[0]->total
+=> 129.99
+```
+
+### Passing Variables Explicitly
+
+Pass specific variables using `get_defined_vars()`:
+
+```php
+<?php
+
+function processOrder($orderId, $userId) {
+    $order = Order::find($orderId);
+    $user = User::find($userId);
+    $total = calculateTotal($order);
+    
+    \Psy\debug(get_defined_vars());
+}
+```
+
+<Tip>
+  Using `get_defined_vars()` gives you access to all local variables in the current scope.
+</Tip>
+
+## Object Context Debugging
+
+### Binding to $this
+
+Debug within an object method with access to private properties:
+
+```php
+<?php
+
+class ShoppingCart {
+    private $items = [];
+    private $discountRate = 0.1;
+    
+    public function addItem($item) {
+        $this->items[] = $item;
+        
+        \Psy\debug(get_defined_vars(), $this);
+    }
+}
+```
+
+Inside the debugger:
+
+```php
+>>> $this->items
+=> [
+     [
+       "name" => "Widget",
+       "price" => 29.99,
+     ],
+   ]
+>>> $this->discountRate  // Access private property!
+=> 0.1
+>>> $this->calculateTotal()  // Call private methods!
+```
+
+<Note>
+  When you bind to `$this`, you get access to private and protected properties and methods, making it perfect for deep debugging.
+</Note>
+
+### Binding to Static Context
+
+For static methods, bind to the class name:
+
+```php
+<?php
+
+class PaymentProcessor {
+    private static $apiKey = 'secret-key';
+    
+    public static function process($amount) {
+        \Psy\debug(get_defined_vars(), __CLASS__);
+        
+        return self::charge($amount);
+    }
+    
+    private static function charge($amount) {
+        // ...
+    }
+}
+```
+
+Inside the debugger:
+
+```php
+>>> self::$apiKey  // Access private static property
+=> "secret-key"
+>>> self::charge(100)  // Call private static method
+```
+
+## The extract() Pattern
+
+### Two-Way Variable Sync
+
+Use `extract()` to modify variables in your code:
+
+```php
+<?php
+
+function processData($data) {
+    $filtered = array_filter($data);
+    $mapped = array_map('strtoupper', $filtered);
+    
+    // Debug and potentially modify variables
+    extract(\Psy\debug(get_defined_vars()));
+    
+    // Variables modified in PsySH are now available here!
+    return $mapped;
+}
+```
+
+Inside the debugger:
+
+```php
+>>> $mapped = array_reverse($mapped)  // Modify the variable
+>>> exit  // Return to code execution
+```
+
+After exiting, `$mapped` contains the modified value in your running code.
+
+<Warning>
+  The `extract()` pattern works in functions and methods, but not in the global scope. It requires PHP 8.0+ for static contexts.
+</Warning>
+
+### Complete extract() Example
+
+```php
+<?php
+
+class DataProcessor {
+    public function transform(array $input) {
+        $step1 = $this->normalize($input);
+        $step2 = $this->validate($step1);
+        $step3 = $this->enrich($step2);
+        
+        // Debug here and modify variables
+        extract(\Psy\debug(get_defined_vars(), $this));
+        
+        return $step3;
+    }
+}
+```
+
+You can now inspect and modify `$step1`, `$step2`, or `$step3`:
+
+```php
+>>> count($step2)
+=> 50
+>>> $step3 = array_slice($step3, 0, 10)  // Take only first 10
+=> [...]
+>>> exit  // Continue with modified $step3
+```
+
+## Debugging Loops
+
+Drop into the debugger during iteration:
+
+```php
+<?php
+
+foreach ($users as $user) {
+    if ($user->needsReview()) {
+        extract(\Psy\debug(get_defined_vars()));
+        // Inspect or modify $user
+    }
+    $user->process();
+}
+```
+
+<Tip>
+  You can exit the debugger with `exit` to continue to the next iteration, or modify variables to affect subsequent iterations.
+</Tip>
+
+## Conditional Debugging
+
+Only debug when certain conditions are met:
+
+```php
+<?php
+
+function processPayment($payment) {
+    $amount = $payment->amount;
+    
+    // Only debug large payments
+    if ($amount > 10000) {
+        \Psy\debug(get_defined_vars());
+    }
+    
+    // Process payment...
+}
+```
+
+### Debug on Exception
+
+Debug when catching exceptions:
+
+```php
+<?php
+
+try {
+    $result = riskyOperation();
+} catch (\Exception $e) {
+    \Psy\debug(get_defined_vars());
+    throw $e;
+}
+```
+
+## Debugging Tips
+
+<Steps>
+  <Step title="Examine Context">
+    Start by looking at what's available:
+    
+    ```php
+    >>> ls
+    Variables: $user, $orders, $total
+    >>> ls -v
+    # Shows variables with values and types
+    ```
+  </Step>
+  
+  <Step title="Inspect Objects">
+    Use `show` to see object details:
+    
+    ```php
+    >>> show $user
+    # Shows class definition, properties, methods
+    ```
+  </Step>
+  
+  <Step title="Test Fixes">
+    Try potential fixes interactively:
+    
+    ```php
+    >>> $user->balance -= 10
+    >>> $user->save()
+    # Test if this fixes the issue
+    ```
+  </Step>
+  
+  <Step title="Continue Execution">
+    Exit when done:
+    
+    ```php
+    >>> exit
+    # Or press Ctrl+D
+    ```
+  </Step>
+</Steps>
+
+## Advanced Debugging
+
+### Multiple Debug Points
+
+Add multiple breakpoints:
+
+```php
+<?php
+
+function complexOperation($data) {
+    $step1 = preprocess($data);
+    \Psy\debug(get_defined_vars());  // Checkpoint 1
+    
+    $step2 = transform($step1);
+    \Psy\debug(get_defined_vars());  // Checkpoint 2
+    
+    $step3 = finalize($step2);
+    \Psy\debug(get_defined_vars());  // Checkpoint 3
+    
+    return $step3;
+}
+```
+
+### Whereami Command
+
+See where you are in the code:
+
+```php
+>>> whereami
+From /app/src/Payment/Processor.php:42:
+
+    37:     public function process($payment) {
+    38:         $amount = $payment->amount;
+    39:         $fee = $this->calculateFee($amount);
+    40:         
+    41:         // Debug checkpoint
+  > 42:         \Psy\debug(get_defined_vars(), $this);
+    43:         
+    44:         $total = $amount + $fee;
+    45:         return $this->charge($total);
+    46:     }
+```
+
+<Note>
+  The `whereami` command is automatically executed when you enter a debug session, showing you the surrounding code context.
+</Note>
+
+## Working with Frameworks
+
+### Laravel
+
+```php
+<?php
+
+Route::get('/debug/{id}', function ($id) {
+    $user = User::find($id);
+    \Psy\debug(get_defined_vars());
+    return view('user.show', compact('user'));
+});
+```
+
+### Symfony
+
+```php
+<?php
+
+class UserController extends AbstractController {
+    public function show($id) {
+        $user = $this->getDoctrine()
+            ->getRepository(User::class)
+            ->find($id);
+        
+        extract(\Psy\debug(get_defined_vars(), $this));
+        
+        return $this->render('user/show.html.twig', [
+            'user' => $user,
+        ]);
+    }
+}
+```
+
+### WordPress
+
+```php
+<?php
+
+add_action('init', function() {
+    if (isset($_GET['debug'])) {
+        global $wpdb, $post;
+        \Psy\debug(get_defined_vars());
+    }
+});
+```
+
+## Eval Alternative: sh()
+
+Use `\Psy\sh()` for a quick eval-based debugger:
+
+```php
+<?php
+
+$user = User::find(1);
+$orders = $user->orders;
+
+eval(\Psy\sh());  // Opens debugger with current scope
+```
+
+This works in PHP 8.0+:
+
+```php
+<?php
+
+if (isset($this)) {
+    extract(\Psy\debug(get_defined_vars(), $this));
+} else {
+    try {
+        static::class;
+        extract(\Psy\debug(get_defined_vars(), static::class));
+    } catch (\Error $e) {
+        extract(\Psy\debug(get_defined_vars()));
+    }
+}
+```
+
+<Accordion title="Why eval()?">
+  The `eval(\Psy\sh())` pattern generates code that properly handles the current context, including `$this` in object contexts and `static::class` in static contexts. This is the most reliable way to maintain proper scope.
+</Accordion>
+
+## Return Value Handling
+
+`\Psy\debug()` returns an array of variables from the debugging session:
+
+```php
+<?php
+
+$x = 10;
+$result = \Psy\debug(get_defined_vars());
+// Returns ['x' => 10, ...other vars...]
+
+extract($result);
+// Now any variables modified in the debugger are available
+```
+
+## Source Code Reference
+
+The debug function is defined in:
+
+- Main function: `src/functions.php:55-122`
+- Function documentation: `src/functions.php:56-97`
+- Context binding: `src/functions.php:112-116`
+- Scope handling: `src/functions.php:103`
+- Return values: `src/functions.php:120`
+
+## Comparison with Other Debuggers
+
+| Feature | \Psy\debug() | Xdebug | dump/dd |
+|---------|--------------|---------|----------|
+| Interactive | ✅ | ✅ | ❌ |
+| No setup required | ✅ | ❌ | ✅ |
+| Modify variables | ✅ | ✅ | ❌ |
+| Access private members | ✅ | ✅ | ❌ |
+| Call methods | ✅ | ✅ | ❌ |
+| Lightweight | ✅ | ❌ | ✅ |
+| Step debugging | ❌ | ✅ | ❌ |
+
+<Tip>
+  Use `\Psy\debug()` for quick, interactive debugging without IDE setup. Use Xdebug for complex step-through debugging.
+</Tip>

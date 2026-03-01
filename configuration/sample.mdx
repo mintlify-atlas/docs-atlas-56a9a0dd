@@ -1,0 +1,412 @@
+---
+title: Sample Configuration
+description: Complete example configuration file with all options and explanations
+---
+
+A comprehensive example configuration file demonstrating all available PsySH configuration options.
+
+## Complete Configuration Example
+
+```php ~/.config/psysh/config.php
+<?php
+/**
+ * PsySH Configuration File
+ * 
+ * This file demonstrates all available configuration options.
+ * Save as ~/.config/psysh/config.php (Linux/macOS) or
+ * %APPDATA%/PsySH/config.php (Windows)
+ */
+
+return [
+    // ================================================================
+    // Directories and Files
+    // ================================================================
+    
+    // Custom config directory (defaults to ~/.config/psysh)
+    // 'configDir' => '/custom/config/path',
+    
+    // Custom data directory (defaults to ~/.local/share/psysh)
+    // 'dataDir' => '/custom/data/path',
+    
+    // Custom runtime directory (defaults to /tmp/psysh)
+    // 'runtimeDir' => '/custom/runtime/path',
+    
+    // Custom history file location
+    // 'historyFile' => '/path/to/custom_history',
+    
+    // PHP manual database file
+    // 'manualDbFile' => '/path/to/php_manual.php',
+    
+    // ================================================================
+    // History Management
+    // ================================================================
+    
+    // Maximum history entries (0 = unlimited)
+    'historySize' => 10000,
+    
+    // Remove duplicate history entries
+    'eraseDuplicates' => true,
+    
+    // ================================================================
+    // Input and Output
+    // ================================================================
+    
+    // Color mode: 'auto', 'forced', 'disabled'
+    'colorMode' => 'auto',
+    
+    // Interactive mode: 'auto', 'forced', 'disabled'
+    'interactiveMode' => 'auto',
+    
+    // Verbosity: 'quiet', 'normal', 'verbose', 'very_verbose', 'debug'
+    'verbosity' => 'normal',
+    
+    // Use raw var_export output (non-interactive mode)
+    // 'rawOutput' => false,
+    
+    // Custom pager command (false to disable)
+    // 'pager' => 'less -R -F -X',
+    // 'pager' => false,
+    
+    // ================================================================
+    // Readline Configuration
+    // ================================================================
+    
+    // Enable readline for line editing
+    'useReadline' => true,
+    
+    // Enable bracketed paste (experimental, GNU readline only)
+    // 'useBracketedPaste' => false,
+    
+    // Enable tab completion
+    'useTabCompletion' => true,
+    
+    // ================================================================
+    // Code Execution
+    // ================================================================
+    
+    // Enable process control (forking)
+    'usePcntl' => true,
+    
+    // Require semicolons on statements
+    'requireSemicolons' => false,
+    
+    // Enable strict type declarations
+    'strictTypes' => false,
+    
+    // YOLO mode - minimal validation (not recommended!)
+    // 'yolo' => false,
+    
+    // Error logging level (E_ALL to log all errors)
+    'errorLoggingLevel' => E_ALL,
+    
+    // ================================================================
+    // Code Analysis
+    // ================================================================
+    
+    // Implicit use statements for unqualified classes
+    // 'implicitUse' => false,
+    
+    // Enable for specific namespaces:
+    // 'implicitUse' => [
+    //     'includeNamespaces' => ['App\\', 'Domain\\'],
+    //     'excludeNamespaces' => ['App\\Legacy\\'],
+    // ],
+    
+    // ================================================================
+    // Display and Presentation
+    // ================================================================
+    
+    // Theme: 'modern', 'compact', 'classic', or custom array
+    'theme' => 'modern',
+    
+    // Custom theme example:
+    // 'theme' => [
+    //     'compact' => false,
+    //     'prompt' => '> ',
+    //     'bufferPrompt' => '. ',
+    //     'replayPrompt' => '- ',
+    //     'returnValue' => '= ',
+    //     'grayFallback' => 'blue',
+    //     'styles' => [
+    //         'error' => ['white', 'red', ['bold']],
+    //         'warning' => ['black', 'yellow'],
+    //         'info' => ['white', 'blue', ['bold']],
+    //         'string' => ['green'],
+    //         'number' => ['magenta'],
+    //         'bool' => ['cyan'],
+    //         'class' => ['blue', null, ['underscore']],
+    //         'function' => ['yellow'],
+    //         'comment' => ['gray'],
+    //     ],
+    // ],
+    
+    // Use Unicode characters in output
+    'useUnicode' => true,
+    
+    // Always show array indexes (even for sequential arrays)
+    'forceArrayIndexes' => false,
+    
+    // ================================================================
+    // Startup and Messages
+    // ================================================================
+    
+    // Files to include at startup
+    // 'defaultIncludes' => [
+    //     __DIR__.'/bootstrap.php',
+    //     __DIR__.'/helpers.php',
+    // ],
+    
+    // Custom startup message
+    // 'startupMessage' => 'Welcome to MyApp Console!',
+    
+    // ================================================================
+    // Project Trust and Security
+    // ================================================================
+    
+    // Project trust: 'prompt', 'always', 'never', true, false
+    'trustProject' => 'prompt',
+    
+    // ================================================================
+    // Autoload Warming
+    // ================================================================
+    
+    // Pre-load classes for better tab completion
+    // 'warmAutoload' => false,
+    
+    // Enable with defaults:
+    // 'warmAutoload' => true,
+    
+    // Custom configuration:
+    // 'warmAutoload' => [
+    //     'maxDepth' => 3,
+    //     'maxNamespaceLength' => 50,
+    // ],
+    
+    // ================================================================
+    // Logging
+    // ================================================================
+    
+    // Log input and execution
+    // Simple callback:
+    // 'logging' => function ($kind, $data) {
+    //     $line = sprintf("[%s] %s\n", $kind, $data);
+    //     file_put_contents('/tmp/psysh.log', $line, FILE_APPEND);
+    // },
+    
+    // PSR-3 logger with granular control:
+    // 'logging' => [
+    //     'logger' => $myLogger,  // PSR-3 LoggerInterface instance
+    //     'level' => [
+    //         'input' => 'info',      // Log user input
+    //         'command' => 'info',    // Log commands
+    //         'execute' => 'debug',   // Log executed code
+    //     ],
+    // ],
+    
+    // ================================================================
+    // Update Checking
+    // ================================================================
+    
+    // Check for PsySH updates: 'always', 'daily', 'weekly', 'monthly', 'never'
+    'updateCheck' => 'weekly',
+    
+    // Check for PHP manual updates
+    'updateManualCheck' => 'weekly',
+    
+    // ================================================================
+    // Advanced
+    // ================================================================
+    
+    // Warn when multiple config files are found
+    'warnOnMultipleConfigs' => false,
+];
+```
+
+## Minimal Configuration
+
+A simple, practical configuration for everyday use:
+
+```php ~/.config/psysh/config.php
+<?php
+return [
+    'historySize' => 10000,
+    'eraseDuplicates' => true,
+    'colorMode' => 'auto',
+    'theme' => 'modern',
+    'updateCheck' => 'weekly',
+];
+```
+
+## Development-Friendly Configuration
+
+Optimized for development work:
+
+```php ~/.config/psysh/config.php
+<?php
+return [
+    // History
+    'historySize' => 20000,
+    'eraseDuplicates' => true,
+    
+    // Appearance
+    'theme' => 'compact',
+    'colorMode' => 'auto',
+    
+    // Features
+    'useTabCompletion' => true,
+    'warmAutoload' => true,
+    
+    // Auto-include project bootstrap
+    'defaultIncludes' => [
+        __DIR__.'/../../bootstrap/app.php',
+    ],
+    
+    // Development logging
+    'logging' => function ($kind, $data) {
+        file_put_contents(
+            sys_get_temp_dir().'/psysh-dev.log',
+            sprintf("[%s] [%s] %s\n", date('Y-m-d H:i:s'), $kind, $data),
+            FILE_APPEND
+        );
+    },
+    
+    // Project trust
+    'trustProject' => 'prompt',
+    
+    // Updates
+    'updateCheck' => 'weekly',
+    'updateManualCheck' => 'weekly',
+];
+```
+
+## Advanced Configuration with Custom Components
+
+Using programmatic configuration for advanced features:
+
+```php ~/.config/psysh/config.php
+<?php
+// You can manipulate the $config object directly
+use Psy\Configuration;
+use Psy\Command\MyCustomCommand;
+
+// Basic configuration
+$config->setHistorySize(10000);
+$config->setTheme('modern');
+$config->setColorMode('auto');
+
+// Add custom commands
+$config->addCommands([
+    new MyCustomCommand(),
+]);
+
+// Add custom tab completion matchers
+$config->addMatchers([
+    new MyApp\PsySH\CustomMatcher(),
+]);
+
+// Add custom variable casters for better display
+$config->addCasters([
+    'MyApp\\User' => 'MyApp\\PsySH\\Casters\\UserCaster::cast',
+    'MyApp\\Product' => function ($product, $caster, $depth) {
+        return [
+            Caster::PREFIX_VIRTUAL . 'id' => $product->getId(),
+            Caster::PREFIX_VIRTUAL . 'name' => $product->getName(),
+            Caster::PREFIX_VIRTUAL . 'price' => $product->getPrice(),
+        ];
+    },
+]);
+
+// Configure implicit use for your app namespaces
+$config->setImplicitUse([
+    'includeNamespaces' => [
+        'MyApp\\',
+        'MyApp\\Domain\\',
+    ],
+    'excludeNamespaces' => [
+        'MyApp\\Legacy\\',
+    ],
+]);
+
+// PSR-3 logging
+if (isset($logger)) {
+    $config->setLogging([
+        'logger' => $logger,
+        'level' => [
+            'input' => 'info',
+            'command' => 'debug',
+            'execute' => 'debug',
+        ],
+    ]);
+}
+
+// Custom output configuration
+$config->setVerbosity('verbose');
+$config->setForceArrayIndexes(true);
+
+// No need to return anything when manipulating $config directly
+```
+
+## Project-Specific Configuration
+
+Create a `.psysh.php` file in your project root:
+
+```php .psysh.php
+<?php
+/**
+ * Project-specific PsySH configuration
+ * Automatically loaded when you run PsySH from this directory
+ */
+
+return [
+    // Auto-include Laravel bootstrap
+    'defaultIncludes' => [
+        __DIR__.'/vendor/autoload.php',
+        __DIR__.'/bootstrap/app.php',
+    ],
+    
+    // Project-specific startup message
+    'startupMessage' => 'MyApp Development Console - Ready!',
+    
+    // Enable autoload warming for this project
+    'warmAutoload' => true,
+    
+    // Compact theme for project work
+    'theme' => 'compact',
+    
+    // Enable implicit use for app namespaces
+    'implicitUse' => [
+        'includeNamespaces' => ['App\\'],
+    ],
+];
+```
+
+## Configuration Testing
+
+Test your configuration by running PsySH with verbose output:
+
+```bash
+psysh -vvv
+```
+
+Or use the `info` command inside PsySH to see current configuration:
+
+```php
+>>> info
+```
+
+Use the `paths` command to verify file locations:
+
+```php
+>>> paths
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="All Configuration Options" icon="sliders" href="/configuration/options">
+    Detailed reference for every config option
+  </Card>
+  <Card title="Theme Customization" icon="palette" href="/configuration/themes">
+    Deep dive into themes and colors
+  </Card>
+</CardGroup>

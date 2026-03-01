@@ -1,0 +1,382 @@
+---
+title: trace Command
+description: Display the current call stack
+---
+
+The `trace` command shows the current call stack, revealing how execution reached the current point in your code. Unlike `wtf`, which shows exception backtraces, `trace` shows the stack trace from the current execution context.
+
+## Syntax
+
+```php
+trace [options]
+```
+
+## Options
+
+<ParamField path="--include-psy" type="flag">
+  **Alias:** `-p`
+  
+  Include PsySH internal frames in the call stack. By default, PsySH's own function calls are hidden for clarity.
+</ParamField>
+
+<ParamField path="--num" type="integer">
+  **Alias:** `-n`
+  
+  Limit output to the specified number of stack frames
+</ParamField>
+
+<ParamField path="--grep" type="pattern">
+  Filter stack frames by pattern (supports regular expressions)
+</ParamField>
+
+<ParamField path="--insensitive" type="flag">
+  **Alias:** `-i`
+  
+  Make grep search case-insensitive  
+</ParamField>
+
+<ParamField path="--invert" type="flag">
+  **Alias:** `-v`
+  
+  Invert grep match (show frames that don't match)
+</ParamField>
+
+## Usage Examples
+
+### Basic Stack Trace
+
+```php
+>>> function level3() {
+...     trace
+... }
+>>> function level2() {
+...     level3()
+... }
+>>> function level1() {
+...     level2()
+... }
+>>> level1()
+```
+
+<Tabs>
+  <Tab title="Output">
+    ```
+     0: level3()
+        at eval():2
+     1: level2()
+        at eval():5
+     2: level1()
+        at eval():8
+     3: eval()
+    ```
+  </Tab>
+</Tabs>
+
+The trace shows the call stack from innermost (current) to outermost (entry point).
+
+### Limit Number of Frames
+
+```php
+>>> trace -n 5
+>>> trace --num 10
+```
+
+Shows only the first 5 or 10 frames.
+
+<Tabs>
+  <Tab title="Example">
+    ```php
+    >>> trace -n 3
+     0: currentFunction()
+     1: caller()
+     2: topLevelCaller()
+    ```
+  </Tab>
+</Tabs>
+
+### Include PsySH Internals
+
+By default, PsySH filters out its own internal calls:
+
+```php
+>>> trace
+ 0: myFunction()
+ 1: eval()
+```
+
+With `--include-psy`, you see the complete stack:
+
+```php
+>>> trace --include-psy
+>>> trace -p
+```
+
+<Tabs>
+  <Tab title="Output">
+    ```
+     0: myFunction()
+        at eval():1
+     1: eval()
+     2: Psy\Shell->execute()
+        at /vendor/psy/psysh/src/Shell.php:542  
+     3: Psy\ExecutionLoop\Loop->run()
+        at /vendor/psy/psysh/src/ExecutionLoop/Loop.php:87
+     4: Psy\Shell->run()
+        at /vendor/psy/psysh/src/Shell.php:345
+     ... (many more PsySH internal frames)
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  Including PsySH internals can be useful for debugging PsySH itself or understanding its execution flow.
+</Note>
+
+### Filter Stack Frames
+
+```php
+>>> trace --grep /MyApp/
+>>> trace --grep /Controller/  
+```
+
+Shows only frames matching the pattern.
+
+<Tabs>
+  <Tab title="Example">
+    ```php
+    >>> trace --grep /App\\/
+     2: App\UserController->store()
+     5: App\Services\UserService->create()
+     8: App\Repositories\UserRepository->save()
+    ```
+  </Tab>
+</Tabs>
+
+### Case-Insensitive Filter
+
+```php
+>>> trace --grep /database/ -i
+>>> trace --grep /controller/ --insensitive
+```
+
+### Invert Filter
+
+```php
+>>> trace --grep /Psy/ --invert
+```
+
+Shows all frames **except** those containing "Psy".
+
+## Understanding the Output
+
+Each stack frame shows:
+
+```
+  N: ClassName->methodName($arg1, $arg2)
+     at /path/to/file.php:123
+```
+
+- **N** - Frame number (0 is current, increasing numbers go up the stack)
+- **ClassName->methodName** - The method or function being called
+- **at /path/to/file.php:123** - Where the call was made from
+
+### Frame Types
+
+```php
+// Instance method call
+ 0: MyClass->instanceMethod()
+
+// Static method call  
+ 1: MyClass::staticMethod()
+
+// Function call
+ 2: someFunction()
+
+// Closure/anonymous function
+ 3: {closure}()
+
+// Eval'd code
+ 4: eval()
+```
+
+## Practical Use Cases
+
+### Debug Deep Call Chains
+
+```php
+>>> trace
+```
+
+See how you ended up at the current point:
+
+```
+ 0: App\Services\OrderProcessor->process()
+ 1: App\Http\Controllers\OrderController->store()
+ 2: Illuminate\Routing\Controller->callAction()
+ 3: Illuminate\Routing\ControllerDispatcher->dispatch()
+ ...
+```
+
+### Find Who Called a Function
+
+```php
+function debugMe() {
+    trace
+    // ... rest of function
+}
+```
+
+When `debugMe()` is called, you'll see the complete call path.
+
+### Verify Execution Path
+
+```php
+>>> trace --grep /Controller/
+```
+
+Confirm which controllers are in the call stack.
+
+### Limit Deep Stacks
+
+```php
+>>> trace -n 10
+```
+
+When dealing with very deep recursion or long call chains, limit output to the most relevant frames.
+
+## Comparison with wtf
+
+| Feature | `trace` | `wtf` |
+|---------|---------|-------|
+| **Purpose** | Current call stack | Exception backtrace |
+| **When to use** | Debug execution flow | Debug errors |
+| **Shows** | How you got here | What went wrong |
+| **Context** | Any time | After an exception |
+
+<Tabs>
+  <Tab title="trace">
+    ```php
+    >>> function foo() { trace; }
+    >>> foo()
+     0: foo()
+     1: eval()
+    ```
+  </Tab>
+  <Tab title="wtf">
+    ```php
+    >>> throw new Exception('Error')
+    >>> wtf
+    Exception with message 'Error'
+    --
+     0: throw new Exception('Error')
+     1: eval()
+    ```
+  </Tab>
+</Tabs>
+
+## Debugging Patterns
+
+### Trace from Specific Point
+
+```php
+class UserService {
+    public function create($data) {
+        trace  // Insert trace to see call stack
+        // ... rest of method
+    }
+}
+```
+
+### Compare Execution Paths
+
+```php
+>>> firstPath()
+>>> trace --num 5
+
+>>> secondPath()
+>>> trace --num 5
+```
+
+Compare which functions are called in different scenarios.
+
+### Filter Application Code
+
+```php
+>>> trace --grep /^App\\/ -n 10
+```
+
+Show only your application's stack frames, ignoring framework code.
+
+## Tips
+
+<Tip>
+  Use `trace` to understand recursion:
+  ```php
+  function factorial($n) {
+      if ($n === 1) trace;
+      return $n === 1 ? 1 : $n * factorial($n - 1);
+  }
+  
+  >>> factorial(5)
+   0: factorial(1)
+   1: factorial(2)  
+   2: factorial(3)
+   3: factorial(4)
+   4: factorial(5)
+  ```
+</Tip>
+
+<Tip>
+  Combine with grep to focus on specific classes:
+  ```php
+  >>> trace --grep /Service/ -n 10
+  ```
+  
+  Shows service layer calls only.
+</Tip>
+
+<Tip>
+  Compare with and without PsySH internals:
+  ```php
+  >>> trace -n 5          # Clean view
+  >>> trace -p -n 20      # See PsySH machinery  
+  ```
+</Tip>
+
+<Warning>
+  Very deep recursion may produce overwhelming output:
+  ```php
+  >>> trace               # Could be hundreds of frames!
+  >>> trace -n 10         # Better - just the recent calls
+  ```
+</Warning>
+
+## Advanced Usage
+
+### Regular Expression Filtering
+
+```php
+>>> trace --grep "/Controller|Service/"
+```
+
+Shows frames containing either "Controller" or "Service".
+
+```php
+>>> trace --grep "/^(?!Illuminate)/"
+```
+
+Shows frames NOT starting with "Illuminate" (excludes Laravel framework).
+
+### Focused Debugging
+
+```php
+>>> trace --grep /Repository/ -n 3
+```
+
+Find the 3 most recent repository calls.
+
+## See Also
+
+- [wtf](/commands/wtf) - View exception backtraces
+- [whereami](/commands/whereami) - Show current code location
+- [show --ex](/commands/show#exception-context) - View exception code context

@@ -1,0 +1,442 @@
+---
+title: history Command
+description: Show, search, save, and replay REPL command history
+---
+
+The `history` command manages your PsySH command history. You can view past commands, search with patterns, save to files, and replay sequences of commands.
+
+## Syntax
+
+```php
+history [options]
+```
+
+## Alias
+
+- `hist`
+
+## Options
+
+### Display Options
+
+<ParamField path="--show" type="range">
+  **Alias:** `-s`
+  
+  Show a specific range of history lines. Formats:
+  - `N` - Show line N only
+  - `N..M` - Show lines N through M
+  - `N..` - Show lines N to end
+  - `..M` - Show lines 0 through M
+</ParamField>
+
+<ParamField path="--head" type="integer">
+  **Alias:** `-H`
+  
+  Display the first N items of history
+</ParamField>
+
+<ParamField path="--tail" type="integer">
+  **Alias:** `-T`
+  
+  Display the last N items of history
+</ParamField>
+
+<ParamField path="--no-numbers" type="flag">
+  **Alias:** `-N`
+  
+  Omit line numbers from output
+</ParamField>
+
+### Search Options
+
+<ParamField path="--grep" type="pattern">
+  Filter history by pattern (supports regular expressions)
+</ParamField>
+
+<ParamField path="--insensitive" type="flag">
+  **Alias:** `-i`
+  
+  Make grep search case-insensitive
+</ParamField>
+
+<ParamField path="--invert" type="flag">
+  **Alias:** `-v`
+  
+  Invert grep match (show lines that don't match)
+</ParamField>
+
+### Actions
+
+<ParamField path="--save" type="filename">
+  Save history to the specified file
+</ParamField>
+
+<ParamField path="--replay" type="flag">
+  Replay the selected history. Must be combined with `--show`, `--head`, or `--tail`.
+</ParamField>
+
+<ParamField path="--clear" type="flag">
+  Clear all command history
+</ParamField>
+
+## Usage Examples
+
+### View All History
+
+```php
+>>> history
+```
+
+<Tabs>
+  <Tab title="Output">
+    ```php
+      0| $name = 'Alice'
+      1| $age = 30
+      2| echo $name
+      3| ls
+      4| doc DateTime::format
+      5| $date = new DateTime()
+    ```
+  </Tab>
+</Tabs>
+
+### Show Specific Lines
+
+```php
+>>> history --show 5
+```
+
+Shows only line 5.
+
+```php
+>>> history --show 10..20
+```
+
+Shows lines 10 through 20.
+
+```php
+>>> history --show 50..
+```
+
+Shows lines 50 to the end.
+
+```php
+>>> history --show ..10
+```
+
+Shows lines 0 through 10.
+
+### Show First/Last N Commands
+
+```php
+>>> history --head 10
+>>> history -H 5
+```
+
+Shows the first 10 or 5 commands.
+
+```php
+>>> history --tail 20
+>>> history -T 10  
+```
+
+Shows the last 20 or 10 commands.
+
+### Search History
+
+```php
+>>> history --grep /DateTime/
+```
+
+<Tabs>
+  <Tab title="Output">
+    ```php
+      4| doc DateTime::format
+      5| $date = new DateTime()
+      8| show DateTime
+     12| ls DateTime
+    ```
+  </Tab>
+</Tabs>
+
+Matching text is highlighted in the output.
+
+### Case-Insensitive Search
+
+```php
+>>> history --grep /datetime/ -i
+>>> history --grep /DATETIME/ --insensitive
+```
+
+Matches "DateTime", "datetime", "DATETIME", etc.
+
+### Invert Search
+
+```php
+>>> history --grep /ls/ --invert
+```
+
+Shows all commands that don't contain "ls".
+
+### Regular Expression Search
+
+```php
+>>> history --grep "/^\$[a-z]+\s*=/"
+```
+
+Matches lines starting with variable assignments.
+
+```php
+>>> history --grep "/doc|show/"
+```
+
+Matches lines containing "doc" or "show".
+
+### Combine Filters
+
+```php
+>>> history --tail 100 --grep /function/
+```
+
+Search the last 100 commands for "function".
+
+```php
+>>> history --show 50..100 --grep /DateTime/ -i
+```
+
+Search lines 50-100 for "datetime" (case-insensitive).
+
+### Save History
+
+```php
+>>> history --save /tmp/myhistory.txt
+>>> history --tail 50 --save recent.txt
+>>> history --grep /DateTime/ --save datetime-commands.txt
+```
+
+<Tabs>
+  <Tab title="Output">
+    ```php
+    Saving history in /tmp/myhistory.txt...
+    History saved.
+    ```
+  </Tab>
+</Tabs>
+
+The file contains the raw commands without line numbers:
+
+```php
+$name = 'Alice'
+$age = 30  
+echo $name
+ls
+```
+
+### Replay History
+
+```php
+>>> history --show 5..10 --replay
+```
+
+Replays commands 5 through 10.
+
+```php
+>>> history --tail 3 --replay
+```
+
+Replays the last 3 commands.
+
+<Tabs>
+  <Tab title="Output">
+    ```php
+    Replaying 3 lines of history
+    
+    >>> $name = 'Bob'
+    >>> $age = 25
+    >>> echo "$name is $age years old"
+    Bob is 25 years old
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+  You must limit history before replaying:
+  ```php
+  >>> history --replay  # Error!
+  You must limit history via --head, --tail or --show before replaying
+  
+  >>> history --tail 5 --replay  # OK
+  ```
+</Warning>
+
+### Clear History
+
+```php
+>>> history --clear
+```
+
+<Tabs>
+  <Tab title="Output">
+    ```
+    History cleared.
+    ```
+  </Tab>
+</Tabs>
+
+Permanently removes all command history.
+
+### Hide Line Numbers
+
+```php
+>>> history --no-numbers
+>>> history -N
+```
+
+<Tabs>
+  <Tab title="Output">
+    ```php
+    $name = 'Alice'
+    $age = 30
+    echo $name  
+    ls
+    ```
+  </Tab>
+</Tabs>
+
+Useful when copying commands.
+
+## Advanced Examples
+
+### Find All Function Definitions
+
+```php
+>>> history --grep "/function\s+\w+/"
+```
+
+### Replay a Specific Sequence
+
+```php
+>>> history --show 15..18 --replay
+```
+
+Re-runs commands 15, 16, 17, and 18 in order.
+
+### Export Recent Work
+
+```php
+>>> history --tail 50 --save recent-work.php
+```
+
+Save the last 50 commands to review or document later.
+
+### Search and Save
+
+```php
+>>> history --grep /class\s+/ --save class-definitions.php
+```
+
+Find and save all class definitions.
+
+### Review Specific Session
+
+```php
+>>> history --show 100..200
+```
+
+View commands from a specific range.
+
+## History Persistence
+
+History is automatically saved between sessions in:
+
+- **Linux/macOS:** `~/.local/share/psysh/history`
+- **Windows:** `%APPDATA%/PsySH/history`
+
+The history file is a plain text file with one command per line.
+
+## Keyboard Shortcuts
+
+Within the REPL, you can navigate history using:
+
+- **Up Arrow** - Previous command
+- **Down Arrow** - Next command  
+- **Ctrl+R** - Reverse search (if readline support is available)
+- **Ctrl+S** - Forward search (if readline support is available)
+
+## Search Highlighting
+
+When using `--grep`, matched portions are highlighted:
+
+```php
+>>> history --grep /date/
+  5| $date = new DateTime()      # 'date' is highlighted
+  8| echo $date->format('Y-m-d') # 'date' is highlighted
+```
+
+## Constraints
+
+The following option combinations are mutually exclusive:
+
+### Display Limiters
+
+Only one of:
+- `--show`
+- `--head`  
+- `--tail`
+
+```php
+>>> history --head 10 --tail 20  # Error!
+Please specify only one of --show, --head, --tail
+```
+
+### Actions
+
+Only one of:
+- `--save`
+- `--replay`
+- `--clear`
+
+```php
+>>> history --save file.txt --clear  # Error!
+Please specify only one of --save, --replay, --clear
+```
+
+## Tips
+
+<Tip>
+  Use regex anchors for precise matching:
+  ```php
+  >>> history --grep "/^ls/"      # Commands starting with 'ls'
+  >>> history --grep "/DateTime$/" # Commands ending with 'DateTime'
+  ```
+</Tip>
+
+<Tip>
+  Create command snippets:
+  ```php
+  >>> history --show 50..55 --save snippet.php
+  ```
+  Save useful command sequences for later reuse.
+</Tip>
+
+<Tip>
+  Test before replaying:
+  ```php
+  >>> history --show 10..15        # Review first
+  >>> history --show 10..15 --replay  # Then replay
+  ```
+</Tip>
+
+<Warning>
+  The current `history` command is not included in the output:
+  ```php
+  >>> ls
+  >>> dump $x
+  >>> history  # Shows 'ls' and 'dump $x', but not this 'history' call
+  ```
+</Warning>
+
+## See Also
+
+- [edit](/commands/edit) - Edit commands in an external editor
+- [help](/commands/other#help) - Get help on commands

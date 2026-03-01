@@ -1,0 +1,394 @@
+---
+title: System Shell Integration
+description: Execute system shell commands from PsySH and integrate with your terminal
+---
+
+PsySH integrates with your system shell to execute commands, manage terminal settings, and provide a seamless REPL experience.
+
+## Executing Shell Commands
+
+PsySH can execute system shell commands directly from the REPL using the `shell_exec()` function or backticks.
+
+### Using shell_exec()
+
+```php
+>>> shell_exec('ls -la')
+=> "total 48\ndrwxr-xr-x  12 user  staff   384 Mar  1 10:00 .\ndrwxr-xr-x   5 user  staff   160 Mar  1 09:00 ..\n..."
+
+>>> shell_exec('git status')
+=> "On branch main\nYour branch is up to date with 'origin/main'.\n..."
+```
+
+### Using Backticks
+
+```php
+>>> $output = `pwd`;
+=> "/Users/username/project\n"
+
+>>> $files = `find . -name "*.php" | wc -l`;
+=> "42\n"
+```
+
+### Displaying Output Directly
+
+Use `passthru()` to stream output directly to the console:
+
+```php
+>>> passthru('composer install')
+Loading composer repositories with package information
+Installing dependencies...
+=> null
+
+>>> passthru('php artisan migrate')
+Migration table created successfully.
+Migrating: 2024_01_01_000000_create_users_table
+=> null
+```
+
+## Terminal Integration
+
+### Terminal State Management
+
+PsySH manages terminal settings using `stty` on Unix-like systems to provide features like:
+
+- Raw input mode for character-by-character reading
+- Signal handling for Ctrl+C interruption
+- Echo control for password input
+
+From the source code (`src/ExecutionLoop/ProcessForker.php:232`):
+
+```php
+$this->originalStty = @shell_exec('stty -g 2>/dev/null');
+```
+
+The terminal state is saved before execution and restored after.
+
+### Signal Handling
+
+PsySH configures terminal signals to allow Ctrl+C to interrupt code execution:
+
+```php
+// Enable signal processing during execution (src/ExecutionLoop/SignalHandler.php:65)
+@shell_exec('stty isig 2>/dev/null');
+```
+
+This allows you to interrupt long-running operations:
+
+```php
+>>> while(true) { sleep(1); }
+^C  // Press Ctrl+C to interrupt
+Execution interrupted.
+```
+
+<Warning>
+Signal handling requires the `pcntl` extension on Unix-like systems. On Windows, signal handling is limited.
+</Warning>
+
+## Console Window Detection
+
+PsySH detects your terminal dimensions for proper output formatting.
+
+### On Windows
+
+Uses the `mode con` command:
+
+```php
+$modecon = explode("\n", ltrim(ConsoleProcessus::execute('mode con')));
+```
+
+### On Unix/Linux/macOS
+
+Uses `tput` commands:
+
+```php
+$tput = ConsoleProcessus::execute('tput cols', false);
+```
+
+This ensures output is properly wrapped and formatted for your terminal size.
+
+## Working Directory
+
+### Setting Working Directory
+
+Use the `--cwd` option to start PsySH in a specific directory:
+
+```bash
+psysh --cwd=/path/to/project
+```
+
+Or with environment variable:
+
+```bash
+cd /path/to/project
+psysh
+```
+
+### Changing Directory During Session
+
+You can use `chdir()` to change the working directory:
+
+```php
+>>> getcwd()
+=> "/Users/username/project"
+
+>>> chdir('/tmp')
+=> true
+
+>>> getcwd()
+=> "/tmp"
+```
+
+<Note>
+Changing the working directory affects subsequent shell commands and file operations, but doesn't change autoloading paths.
+</Note>
+
+## Environment Variables
+
+### Reading Environment Variables
+
+```php
+>>> getenv('HOME')
+=> "/Users/username"
+
+>>> $_SERVER['PATH']
+=> "/usr/local/bin:/usr/bin:/bin"
+
+>>> getenv('PSYSH_CONFIG')
+=> "/Users/username/.config/psysh/config.php"
+```
+
+### Setting Environment Variables
+
+```php
+>>> putenv('MY_VAR=value')
+=> true
+
+>>> getenv('MY_VAR')
+=> "value"
+
+>>> shell_exec('echo $MY_VAR')
+=> "value\n"
+```
+
+### PsySH-Specific Environment Variables
+
+PsySH recognizes several environment variables:
+
+| Variable | Purpose | Example |
+|----------|---------|----------|
+| `PSYSH_CONFIG` | Config file path | `~/.psysh.php` |
+| `PSYSH_TRUST_PROJECT` | Trust mode | `true`, `false` |
+| `PSYSH_UNTRUSTED_PROJECT` | Internal trust hint | (set by launcher) |
+
+From `bin/psysh:85-96`:
+
+```php
+if (isset($_SERVER['PSYSH_TRUST_PROJECT']) && $_SERVER['PSYSH_TRUST_PROJECT'] !== '') {
+    $mode = strtolower(trim($_SERVER['PSYSH_TRUST_PROJECT']));
+    if (in_array($mode, array('true', '1'))) {
+        $forceTrust = true;
+    } elseif (in_array($mode, array('false', '0'))) {
+        $forceUntrust = true;
+    }
+}
+```
+
+## Process Forking
+
+When `pcntl` is available, PsySH can fork the process before executing code to provide better isolation.
+
+### How It Works
+
+From `src/ExecutionLoop/ProcessForker.php`, the execution loop:
+
+1. **Forks** the process before code execution
+2. **Executes** user code in the child process
+3. **Returns** results to the parent via a pipe
+4. **Preserves** the REPL state in case of fatal errors
+
+### Benefits
+
+- Fatal errors don't crash the REPL
+- Infinite loops can be interrupted
+- Memory leaks are isolated
+
+### Disabling Process Forking
+
+You can disable process forking:
+
+```php
+// In .psysh.php
+return [
+    'usePcntl' => false,
+];
+```
+
+Or via command line:
+
+```php
+$config = new \Psy\Configuration(['usePcntl' => false]);
+$shell = new \Psy\Shell($config);
+```
+
+<Warning>
+Without process forking, fatal errors will terminate the entire PsySH session.
+</Warning>
+
+## File System Operations
+
+### Reading Files
+
+```php
+>>> $content = file_get_contents('composer.json')
+=> "{\n  \"name\": \"my/project\",\n  ..."
+
+>>> $lines = file('README.md')
+=> [
+     "# My Project\n",
+     "\n",
+     "Description...\n",
+   ]
+```
+
+### Writing Files
+
+```php
+>>> file_put_contents('test.txt', 'Hello World')
+=> 11
+
+>>> file_exists('test.txt')
+=> true
+
+>>> unlink('test.txt')
+=> true
+```
+
+### Directory Traversal
+
+```php
+>>> $files = scandir('.')
+=> [
+     ".",
+     "..",
+     "composer.json",
+     "src",
+     "vendor",
+   ]
+
+>>> $iterator = new RecursiveDirectoryIterator('src')
+>>> foreach(new RecursiveIteratorIterator($iterator) as $file) {
+...   echo $file . "\n";
+... }
+src/MyClass.php
+src/Helper.php
+```
+
+## Readline Integration
+
+PsySH uses the GNU Readline library (or alternatives) for command-line editing.
+
+### Features Provided by Readline
+
+- Line editing (Emacs or Vi keybindings)
+- Command history
+- Tab completion
+- Multi-line editing
+
+### Readline Libraries
+
+PsySH supports multiple readline implementations:
+
+1. **GNU Readline** (via PHP `readline` extension)
+2. **Libedit** (BSD systems)
+3. **Hoa Console** (pure PHP fallback)
+
+### Checking Readline Support
+
+```php
+>>> extension_loaded('readline')
+=> true
+
+>>> readline_info()
+=> [
+     "line_buffer" => "",
+     "point" => 0,
+     "end" => 0,
+     "library_version" => "EditLine wrapper",
+   ]
+```
+
+### Custom Readline Configuration
+
+Create `~/.inputrc` for Readline settings:
+
+```bash
+# Use Vi keybindings
+set editing-mode vi
+
+# Case-insensitive completion
+set completion-ignore-case on
+
+# Show all completions immediately
+set show-all-if-ambiguous on
+```
+
+## Platform-Specific Features
+
+### Unix/Linux/macOS
+
+- Full signal handling with `pcntl`
+- Terminal state management with `stty`
+- Process forking for isolation
+- Color output support
+
+### Windows
+
+- Limited signal handling
+- ANSI color support (Windows 10+)
+- Console window detection via `mode con`
+- No process forking (requires `pcntl`)
+
+<Tip>
+On Windows, use Windows Terminal or ConEmu for the best PsySH experience with proper color support.
+</Tip>
+
+## Best Practices
+
+<Accordion title="Be careful with destructive commands">
+  Shell commands executed from PsySH have the same permissions as the user running PsySH. Be cautious with commands like `rm`, `mv`, or database operations.
+  
+  ```php
+  >>> // DANGEROUS - no confirmation!
+  >>> shell_exec('rm -rf /tmp/cache/*')
+  ```
+</Accordion>
+
+<Accordion title="Check command availability">
+  Before executing system commands, verify they exist:
+  
+  ```php
+  >>> $which = shell_exec('which convert');
+  >>> if (trim($which)) {
+  ...   shell_exec('convert input.png output.jpg');
+  ... }
+  ```
+</Accordion>
+
+<Accordion title="Handle command output">
+  System commands may produce large output. Consider using file redirection:
+  
+  ```php
+  >>> shell_exec('php composer.phar update > /tmp/composer.log 2>&1')
+  >>> $log = file_get_contents('/tmp/composer.log')
+  ```
+</Accordion>
+
+<Accordion title="Escape user input">
+  When building shell commands with variables, use `escapeshellarg()`:
+  
+  ```php
+  >>> $file = 'my file.txt'; // Note: has space
+  >>> shell_exec('cat ' . escapeshellarg($file))
+  => "File contents..."
+  ```
+</Accordion>

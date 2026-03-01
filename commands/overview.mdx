@@ -1,0 +1,127 @@
+---
+title: Commands Overview
+description: Complete reference of all PsySH commands for interactive debugging and exploration
+---
+
+PsySH provides a rich set of commands for exploring code, debugging, and managing your REPL session. All commands can be invoked with their name or any of their aliases.
+
+## Documentation & Exploration
+
+<CardGroup cols={2}>
+  <Card title="doc" icon="book" href="/commands/doc">
+    Read documentation for functions, classes, methods, and properties
+  </Card>
+  <Card title="show" icon="code" href="/commands/show">
+    Display source code for classes, methods, and functions
+  </Card>
+  <Card title="ls" icon="list" href="/commands/ls">
+    List variables, methods, properties, and constants
+  </Card>
+  <Card title="dump" icon="database" href="/commands/dump">
+    Dump objects and primitives with detailed formatting
+  </Card>
+</CardGroup>
+
+## Debugging
+
+<CardGroup cols={2}>
+  <Card title="wtf" icon="bug" href="/commands/wtf">
+    Show the backtrace of the most recent exception
+  </Card>
+  <Card title="trace" icon="route" href="/commands/trace">
+    Display the current call stack
+  </Card>
+  <Card title="whereami" icon="location-dot" href="/commands/whereami">
+    Show where you are in the code
+  </Card>
+  <Card title="show --ex" icon="file-code" href="/commands/show#exception-context">
+    Show exception context with source code
+  </Card>
+</CardGroup>
+
+## History & Editing
+
+<CardGroup cols={2}>
+  <Card title="history" icon="clock-rotate-left" href="/commands/history">
+    Search, save, and replay command history
+  </Card>
+  <Card title="edit" icon="pen-to-square" href="/commands/edit">
+    Open an external editor for code input
+  </Card>
+</CardGroup>
+
+## Session Management
+
+<CardGroup cols={2}>
+  <Card title="help" icon="circle-question" href="/commands/other#help">
+    Display help for commands
+  </Card>
+  <Card title="clear" icon="broom" href="/commands/other#clear">
+    Clear the screen
+  </Card>
+  <Card title="exit" icon="right-from-bracket" href="/commands/other#exit">
+    Exit the REPL session
+  </Card>
+</CardGroup>
+
+## Quick Command Reference
+
+| Command | Aliases | Description |
+|---------|---------|-------------|
+| `doc` | `rtfm`, `man` | Read documentation for code elements |
+| `show` | - | Show source code or exception context |
+| `ls` | `dir` | List variables, methods, properties |
+| `dump` | - | Dump an object or primitive |
+| `wtf` | `last-exception`, `wtf?` | Show exception backtrace |
+| `trace` | - | Show current call stack |
+| `whereami` | - | Show current code location |
+| `history` | `hist` | Manage command history |
+| `edit` | - | Open external editor |
+| `help` | `?` | Show command help |
+| `clear` | - | Clear the screen |
+| `exit` | `quit`, `q` | Exit PsySH |
+
+## Common Patterns
+
+### Exploring a Class
+
+```php
+>>> $obj = new DateTime()
+>>> ls $obj                    // List all properties and methods
+>>> doc $obj->format           // Read method documentation
+>>> show DateTime::createFromFormat  // View source code
+```
+
+### Debugging an Exception
+
+```php
+>>> someFunction()  // Throws exception
+>>> wtf             // Show basic backtrace
+>>> wtf ????        // Show more trace lines
+>>> wtf -a          // Show entire backtrace
+>>> show --ex       // Show exception context with code
+>>> show --ex 3     // Show specific trace level
+```
+
+### Working with History
+
+```php
+>>> history                          // Show all history
+>>> history --grep "/DateTime/"      // Search history
+>>> history --tail 20                // Show last 20 commands
+>>> history --show 5..10 --replay    // Replay commands 5-10
+```
+
+## Getting Help
+
+For detailed help on any command:
+
+```php
+>>> help <command>
+>>> help doc
+>>> help ls
+```
+
+<Tip>
+Most commands support tab completion for arguments. Press Tab to see available options!
+</Tip>

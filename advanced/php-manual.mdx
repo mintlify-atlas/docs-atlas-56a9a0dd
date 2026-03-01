@@ -1,0 +1,453 @@
+---
+title: PHP Manual Integration
+description: Download, configure, and use the PHP manual within PsySH for offline documentation
+---
+
+PsySH can download and use the PHP manual to provide inline documentation for PHP functions, classes, and language constructs.
+
+## Manual Formats
+
+PsySH supports two manual formats:
+
+### V3 Format (Current)
+
+The current format stores documentation in a single PHP file (`php_manual.php`):
+
+- **Storage**: Single `.php` file with embedded data
+- **Performance**: Fast load times, optimized structure
+- **Size**: ~3-5 MB depending on language
+- **Format version**: `3.x`
+
+From `src/Manual/V3Manual.php:19-22`:
+
+```php
+/**
+ * V3 manual format loader.
+ *
+ * Loads structured manual documentation from a single pre-built PHP file.
+ */
+class V3Manual implements ManualInterface
+```
+
+### V2 Format (Legacy)
+
+The legacy format uses SQLite database (`php_manual.sqlite`):
+
+- **Storage**: SQLite database file
+- **Performance**: Requires database queries
+- **Size**: ~5-8 MB depending on language
+- **Format version**: `2.x`
+
+From `src/Manual/V2Manual.php:17-18`:
+
+```php
+/**
+ * V2 manual format loader.
+ * Loads pre-formatted manual documentation from SQLite databases.
+ */
+class V2Manual implements ManualInterface
+```
+
+<Note>
+V3 format is recommended for new installations. V2 SQLite format is maintained for backward compatibility.
+</Note>
+
+## Downloading the Manual
+
+### Using the doc Command
+
+Download the manual from within PsySH:
+
+```php
+>>> doc --update-manual
+Downloading manual v3.0...
+Installed manual v3.0 to ~/.local/share/psysh/php_manual.php
+```
+
+### Specifying a Language
+
+Download a localized version:
+
+```php
+>>> doc --update-manual=fr
+Downloading manual v3.0...
+Installed manual v3.0 to ~/.local/share/psysh/php_manual.php
+```
+
+Available languages include:
+- `en` - English (default)
+- `fr` - French
+- `de` - German
+- `es` - Spanish
+- `pt_BR` - Portuguese (Brazil)
+- `ja` - Japanese
+- `zh` - Chinese
+- And more...
+
+### Command-Line Download
+
+You can also download from the command line:
+
+```bash
+psysh --manual-update
+psysh --manual-update=de
+```
+
+## Manual Installation
+
+PsySH looks for manual files in your data directory:
+
+### Default Locations
+
+**Linux/Unix:**
+- `~/.local/share/psysh/php_manual.php`
+- `~/.local/share/psysh/php_manual.sqlite`
+
+**macOS:**
+- `~/.local/share/psysh/php_manual.php`
+- `~/.local/share/psysh/php_manual.sqlite`
+
+**Windows:**
+- `%APPDATA%\PsySH\php_manual.php`
+- `%APPDATA%\PsySH\php_manual.sqlite`
+
+### Manual Installation Process
+
+From `src/ManualUpdater/Installer.php:61-62`:
+
+```php
+// Determine the manual filename
+$manualFilename = $this->format === 'php' ? 'php_manual.php' : 'php_manual.sqlite';
+```
+
+The installer:
+
+1. Downloads the manual archive from GitHub releases
+2. Extracts the manual file
+3. Moves it to the data directory
+4. Validates the file format
+
+## Using the Manual
+
+### Viewing Function Documentation
+
+```php
+>>> doc array_map
+```
+
+Output:
+```
+Function [ <internal:standard> function array_map ] {
+
+  - Parameters [2] {
+    Parameter #0 [ <required> callable $callback ]
+    Parameter #1 [ <required> array $array ]
+  }
+}
+
+Description:
+  Applies the callback to the elements of the given arrays
+
+  array_map(callable $callback, array $array, array ...$arrays): array
+
+Parameters:
+  callback - A callable to run for each element in each array
+  array    - An array to run through the callback function
+  arrays   - Supplementary arrays
+
+Return Values:
+  Returns an array containing all the elements of array after
+  applying the callback function to each one.
+```
+
+### Viewing Class Documentation
+
+```php
+>>> doc PDO
+>>> doc DateTime::format
+>>> doc Exception::getMessage
+```
+
+### Language Construct Documentation
+
+```php
+>>> doc foreach
+>>> doc try
+>>> doc switch
+```
+
+## Manual Update Checking
+
+PsySH can automatically check for manual updates.
+
+### Automatic Update Checks
+
+Configure automatic checking in `.psysh.php`:
+
+```php
+return [
+    'updateManualCheck' => 'monthly', // or 'daily', 'weekly'
+];
+```
+
+From `src/Configuration.php:88`:
+
+```php
+private ?string $updateManualCheck = null;
+```
+
+### Check Frequency Options
+
+- `'daily'` - Check once per day
+- `'weekly'` - Check once per week
+- `'monthly'` - Check once per month (default)
+- `null` - Never check automatically
+
+### Manual Update Status
+
+PsySH stores update check timestamps in a cache file to avoid excessive checks.
+
+## Manual Metadata
+
+Each manual file contains metadata about version, language, and build date.
+
+### Reading Manual Info
+
+From `src/Manual/ManualInterface.php:40-43`:
+
+```php
+/**
+ * Get manual metadata (version, language, build date, etc).
+ */
+public function getMeta(): array;
+```
+
+### Example Metadata
+
+```php
+[
+    'version' => '3.0.1',
+    'lang' => 'en',
+    'format' => 'php',
+    'built_at' => 1709251200,
+    'git_timestamp' => 1709164800,
+]
+```
+
+## Manual Format Migration
+
+When upgrading from V2 to V3 format, PsySH offers migration assistance.
+
+### From SQLite to PHP Format
+
+From `src/ManualUpdater/ManualUpdate.php:247-267`:
+
+When you have a legacy SQLite manual, PsySH prompts:
+
+```
+You have a legacy SQLite manual: ~/.local/share/psysh/php_manual.sqlite
+
+Download the current manual format? [Y/n]
+```
+
+Choosing "Yes" will:
+1. Download the new PHP format
+2. Keep the SQLite format (optional)
+3. Update both formats if both exist
+
+## Invalid Manual Handling
+
+If a manual file becomes corrupted, PsySH detects it and offers to remove it.
+
+### Detection
+
+From `src/Manual/V3Manual.php:59-76`:
+
+```php
+// Validate that the file returned an object with the expected interface
+if (!is_object($data)) {
+    throw new InvalidManualException(
+        sprintf('Manual file "%s" must return an object, got %s', $filePath, gettype($data)),
+        $filePath
+    );
+}
+
+// Verify the manual format version is v3.x
+$meta = $data->getMeta();
+if (!isset($meta['version']) || !preg_match('/^3\./', (string) $meta['version'])) {
+    $version = $meta['version'] ?? 'unknown';
+    throw new InvalidManualException(
+        sprintf('Manual file "%s" must be v3.x format, got version %s', $filePath, $version),
+        $filePath
+    );
+}
+```
+
+### Recovery Prompt
+
+From `src/ManualUpdater/ManualUpdate.php:217-244`:
+
+```
+Invalid manual file detected: ~/.local/share/psysh/php_manual.php
+
+Remove this file and continue? [Y/n]
+```
+
+Choosing "Yes" removes the invalid file and allows you to download a fresh copy.
+
+## Configuration Options
+
+### Manual Database File
+
+Explicitly set the manual file path:
+
+```php
+// .psysh.php
+return [
+    'manualDbFile' => '/custom/path/php_manual.php',
+];
+```
+
+From `src/Configuration.php:2056-2066`:
+
+```php
+/**
+ * Set the PHP manual database file.
+ *
+ * @param string $filename Manual file path
+ */
+public function setManualDbFile(string $filename)
+{
+    $this->manualDbFile = (string) $filename;
+}
+```
+
+### Data Directory
+
+Change where PsySH stores data files:
+
+```php
+return [
+    'dataDir' => '/path/to/data',
+];
+```
+
+This affects where manual files are stored and searched.
+
+## Bundled Manual (PHAR)
+
+When PsySH is installed as a PHAR, it can include a bundled manual.
+
+### How It Works
+
+From `src/Configuration.php:2157-2168`:
+
+PsySH checks for a manual in this order:
+
+1. Explicitly configured `manualDbFile`
+2. Manual files in the data directory
+3. Bundled manual in the PHAR
+
+### Building a PHAR with Manual
+
+When building PsySH:
+
+```bash
+# Download manual first
+php bin/psysh --update-manual
+
+# Build PHAR (includes manual)
+php build.php
+```
+
+The resulting PHAR will have offline documentation built-in.
+
+## Troubleshooting
+
+<Accordion title="Manual not found">
+  If PsySH can't find the manual:
+  
+  ```php
+  >>> doc strlen
+  PHP manual not found. Install it with `doc --update-manual`
+  ```
+  
+  **Solution**: Download the manual:
+  ```php
+  >>> doc --update-manual
+  ```
+</Accordion>
+
+<Accordion title="Download fails">
+  If manual download fails:
+  
+  ```
+  Downloading manual v3.0... Failed.
+  Error: Could not download file
+  ```
+  
+  **Possible causes**:
+  - No internet connection
+  - GitHub releases unavailable
+  - Firewall blocking downloads
+  
+  **Solution**: Download manually from GitHub and place in data directory.
+</Accordion>
+
+<Accordion title="Multiple manual files warning">
+  ```
+  Warning: Multiple manual database files found: ~/.local/share/psysh/php_manual.php, 
+  ~/.local/share/psysh/php_manual.sqlite. Using php_manual.php
+  ```
+  
+  This is informational. PsySH will use the V3 (PHP) format.
+  
+  **Solution**: Delete the older `.sqlite` file if you don't need it:
+  ```bash
+  rm ~/.local/share/psysh/php_manual.sqlite
+  ```
+</Accordion>
+
+<Accordion title="Invalid manual file">
+  ```
+  Invalid manual file detected: ~/.local/share/psysh/php_manual.php
+  ```
+  
+  The manual file is corrupted.
+  
+  **Solution**: Remove and re-download:
+  ```php
+  >>> doc --update-manual
+  Remove this file and continue? [Y/n] y
+  Downloading manual v3.0... OK
+  ```
+</Accordion>
+
+<Accordion title="Wrong language downloaded">
+  If you downloaded the wrong language:
+  
+  **Solution**: Download the correct language:
+  ```php
+  >>> doc --update-manual=en
+  ```
+  
+  This will replace the existing manual file.
+</Accordion>
+
+## Best Practices
+
+<Tip>
+**Download once, use everywhere**: Download the manual globally and all your PsySH sessions will have documentation available.
+</Tip>
+
+<Tip>
+**Keep it updated**: Run `doc --update-manual` periodically to get the latest PHP documentation.
+</Tip>
+
+<Tip>
+**Use your preferred language**: If English isn't your first language, download a localized manual for better understanding.
+</Tip>
+
+<Tip>
+**Bundle in PHAR**: If you distribute PsySH as a PHAR, include the manual for offline use.
+</Tip>

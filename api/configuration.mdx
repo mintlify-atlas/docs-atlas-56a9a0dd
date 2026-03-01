@@ -1,0 +1,991 @@
+---
+title: "\\Psy\\Configuration"
+description: "PsySH configuration class"
+---
+
+The PsySH Shell configuration class. Controls shell behavior, appearance, and features.
+
+## Constructor
+
+### `__construct(array $config = [])`
+
+Construct a Configuration instance.
+
+Optionally supply an array of configuration values to load.
+
+<ParamField path="config" type="array" optional>
+  Array of configuration options
+</ParamField>
+
+```php
+use Psy\Configuration;
+
+// Default configuration
+$config = new Configuration();
+
+// Custom configuration
+$config = new Configuration([
+    'colorMode' => 'forced',
+    'defaultIncludes' => ['/path/to/bootstrap.php'],
+    'requireSemicolons' => true,
+    'useUnicode' => true,
+]);
+```
+
+## Static Methods
+
+### `fromInput(InputInterface $input): self`
+
+Construct a Configuration object from Symfony Console input.
+
+Great for adding psysh-compatible command line options to framework- or app-specific wrappers.
+
+<ParamField path="input" type="InputInterface" required>
+  Symfony Console input (should be bound to an InputDefinition first)
+</ParamField>
+
+<ResponseField name="return" type="Configuration">
+  Configuration instance
+</ResponseField>
+
+```php
+use Symfony\Component\Console\Input\ArgvInput;
+use Psy\Configuration;
+
+$input = new ArgvInput();
+$config = Configuration::fromInput($input);
+```
+
+### `getInputOptions(): array`
+
+Get a list of input options expected when initializing Configuration via input.
+
+<ResponseField name="return" type="InputOption[]">
+  Array of Symfony Console InputOption instances
+</ResponseField>
+
+```php
+use Symfony\Component\Console\Input\InputDefinition;
+use Psy\Configuration;
+
+$definition = new InputDefinition(Configuration::getInputOptions());
+```
+
+## Configuration Methods
+
+### `loadConfig(array $options): void`
+
+Load configuration values from an array of options.
+
+<ParamField path="options" type="array" required>
+  Configuration options
+</ParamField>
+
+```php
+$config->loadConfig([
+    'colorMode' => 'forced',
+    'requireSemicolons' => true,
+]);
+```
+
+### `loadConfigFile(string $file): void`
+
+Load a configuration file (default: `~/.config/psysh/config.php`).
+
+The configuration instance is available to the config file as `$config`. The config file may directly manipulate the configuration, or return an array of options.
+
+<ParamField path="file" type="string" required>
+  Path to configuration file
+</ParamField>
+
+```php
+$config->loadConfigFile('/path/to/config.php');
+```
+
+### `init(): void`
+
+Initialize the configuration.
+
+Checks for Readline and Pcntl extensions. Loads config files if available.
+
+## File and Directory Methods
+
+### `getConfigFile(): ?string`
+
+Get the current PsySH config file.
+
+Searches for `config.php` or `rc.php` in config directories.
+
+<ResponseField name="return" type="string|null">
+  Config file path, or null if none exists
+</ResponseField>
+
+### `getLocalConfigFile(): ?string`
+
+Get the local PsySH config file (`.psysh.php` in current working directory).
+
+<ResponseField name="return" type="string|null">
+  Local config file path, or null
+</ResponseField>
+
+### `setConfigDir(string $dir): void`
+
+Set the shell's config directory location.
+
+<ParamField path="dir" type="string" required>
+  Config directory path
+</ParamField>
+
+### `getConfigDir(): ?string`
+
+Get the current configuration directory.
+
+<ResponseField name="return" type="string|null">
+  Config directory path, or null
+</ResponseField>
+
+### `setDataDir(string $dir): void`
+
+Set the shell's data directory location.
+
+<ParamField path="dir" type="string" required>
+  Data directory path
+</ParamField>
+
+### `getDataDir(): ?string`
+
+Get the current data directory.
+
+<ResponseField name="return" type="string|null">
+  Data directory path, or null
+</ResponseField>
+
+### `setRuntimeDir(string $dir): void`
+
+Set the shell's temporary directory location.
+
+<ParamField path="dir" type="string" required>
+  Runtime directory path
+</ParamField>
+
+### `getRuntimeDir(bool $create = true): string`
+
+Get the shell's temporary directory location.
+
+Defaults to `/psysh` inside the system's temp dir.
+
+<ParamField path="create" type="bool" default="true">
+  Whether to create directory if it doesn't exist
+</ParamField>
+
+<ResponseField name="return" type="string">
+  Runtime directory path
+</ResponseField>
+
+## History Configuration
+
+### `setHistoryFile(string $file): void`
+
+Set the readline history file path.
+
+<ParamField path="file" type="string" required>
+  History file path
+</ParamField>
+
+### `getHistoryFile(): ?string`
+
+Get the readline history file path.
+
+Defaults to `/history` inside the shell's config dir.
+
+<ResponseField name="return" type="string|null">
+  History file path, or null
+</ResponseField>
+
+### `setHistorySize(int $value): void`
+
+Set the readline max history size.
+
+<ParamField path="value" type="int" required>
+  Maximum history entries
+</ParamField>
+
+### `getHistorySize(): int`
+
+Get the readline max history size.
+
+<ResponseField name="return" type="int">
+  Maximum history entries (0 = unlimited)
+</ResponseField>
+
+### `setEraseDuplicates(bool $value): void`
+
+Set whether readline erases old duplicate history entries.
+
+<ParamField path="value" type="bool" required>
+  Whether to erase duplicates
+</ParamField>
+
+### `getEraseDuplicates(): ?bool`
+
+Get whether readline erases old duplicate history entries.
+
+<ResponseField name="return" type="bool|null">
+  True if duplicates are erased, null if not set
+</ResponseField>
+
+## Includes
+
+### `setDefaultIncludes(array $includes = []): void`
+
+Set files to be included by default at the start of each shell session.
+
+<ParamField path="includes" type="array" default="[]">
+  Array of file paths
+</ParamField>
+
+```php
+$config->setDefaultIncludes([
+    '/path/to/bootstrap.php',
+    '/path/to/helpers.php',
+]);
+```
+
+### `getDefaultIncludes(): array`
+
+Get files to be included by default at the start of each shell session.
+
+<ResponseField name="return" type="string[]">
+  Array of file paths
+</ResponseField>
+
+## Readline Configuration
+
+### `hasReadline(): bool`
+
+Check whether this PHP instance has Readline available.
+
+<ResponseField name="return" type="bool">
+  True if Readline is available
+</ResponseField>
+
+### `setUseReadline(bool $useReadline): void`
+
+Enable or disable Readline usage.
+
+<ParamField path="useReadline" type="bool" required>
+  Whether to use Readline
+</ParamField>
+
+### `useReadline(): bool`
+
+Check whether to use Readline.
+
+<ResponseField name="return" type="bool">
+  True if Readline should be used
+</ResponseField>
+
+### `setReadline(Readline\Readline $readline): void`
+
+Set the PsySH readline service.
+
+<ParamField path="readline" type="Readline\Readline" required>
+  Readline instance
+</ParamField>
+
+### `getReadline(): Readline\Readline`
+
+Get the PsySH readline service.
+
+By default uses GNU Readline, Libedit, or array-based emulation.
+
+<ResponseField name="return" type="Readline\Readline">
+  Readline instance
+</ResponseField>
+
+### `setUseBracketedPaste(bool $useBracketedPaste): void`
+
+Enable or disable bracketed paste.
+
+Only works with GNU readline (not libedit).
+
+<ParamField path="useBracketedPaste" type="bool" required>
+  Whether to use bracketed paste
+</ParamField>
+
+### `useBracketedPaste(): bool`
+
+Check whether to use bracketed paste with readline.
+
+<ResponseField name="return" type="bool">
+  True if bracketed paste should be used
+</ResponseField>
+
+## Pcntl Configuration
+
+### `hasPcntl(): bool`
+
+Check whether this PHP instance has Pcntl available.
+
+<ResponseField name="return" type="bool">
+  True if Pcntl is available
+</ResponseField>
+
+### `setUsePcntl(bool $usePcntl): void`
+
+Enable or disable Pcntl usage.
+
+<ParamField path="usePcntl" type="bool" required>
+  Whether to use Pcntl
+</ParamField>
+
+### `usePcntl(): bool`
+
+Check whether to use Pcntl.
+
+<ResponseField name="return" type="bool">
+  True if Pcntl should be used
+</ResponseField>
+
+## Output Configuration
+
+### `setOutput(ShellOutput $output): void`
+
+Set the Shell Output service.
+
+<ParamField path="output" type="ShellOutput" required>
+  Output instance
+</ParamField>
+
+### `getOutput(): ShellOutput`
+
+Get a Shell Output service instance.
+
+<ResponseField name="return" type="ShellOutput">
+  Output instance
+</ResponseField>
+
+### `setRawOutput(bool $rawOutput): void`
+
+Enable or disable raw output.
+
+<ParamField path="rawOutput" type="bool" required>
+  Whether to use raw output
+</ParamField>
+
+### `rawOutput(): bool`
+
+Check whether to use raw output (var_export style).
+
+Set by `--raw-output` flag, only makes sense when non-interactive.
+
+<ResponseField name="return" type="bool">
+  True if raw output is enabled
+</ResponseField>
+
+### `setPager($pager): void`
+
+Set the OutputPager service.
+
+Can be a string (command name) or OutputPager instance. Use 'cat' or false to disable.
+
+<ParamField path="pager" type="string|OutputPager|false" required>
+  Pager command or instance
+</ParamField>
+
+```php
+$config->setPager('less -R');
+$config->setPager(false); // disable paging
+```
+
+### `getPager(): string|OutputPager|false`
+
+Get an OutputPager instance or command for an external pager.
+
+<ResponseField name="return" type="string|OutputPager|false">
+  Pager command, instance, or false if disabled
+</ResponseField>
+
+## Color and Theme Configuration
+
+### `setColorMode(string $colorMode): void`
+
+Set the current color mode.
+
+<ParamField path="colorMode" type="string" required>
+  One of: 'auto', 'forced', 'disabled'
+</ParamField>
+
+```php
+use Psy\Configuration;
+
+$config->setColorMode(Configuration::COLOR_MODE_FORCED);
+$config->setColorMode(Configuration::COLOR_MODE_DISABLED);
+$config->setColorMode(Configuration::COLOR_MODE_AUTO);
+```
+
+### `colorMode(): string`
+
+Get the current color mode.
+
+<ResponseField name="return" type="string">
+  One of: 'auto', 'forced', 'disabled'
+</ResponseField>
+
+### `setTheme($theme): void`
+
+Set the current output Theme.
+
+<ParamField path="theme" type="Theme|string|array" required>
+  Theme instance, name, or config array
+</ParamField>
+
+```php
+// Use built-in theme
+$config->setTheme('compact');
+
+// Custom theme
+$config->setTheme(new Theme([
+    'prompt' => '\\> ',
+    'compact' => true,
+]));
+```
+
+### `theme(): Theme`
+
+Get the current output Theme.
+
+<ResponseField name="return" type="Theme">
+  Theme instance
+</ResponseField>
+
+## Interactive Mode
+
+### `setInteractiveMode(string $interactiveMode): void`
+
+Set the shell's interactive mode.
+
+<ParamField path="interactiveMode" type="string" required>
+  One of: 'auto', 'forced', 'disabled'
+</ParamField>
+
+```php
+use Psy\Configuration;
+
+$config->setInteractiveMode(Configuration::INTERACTIVE_MODE_FORCED);
+$config->setInteractiveMode(Configuration::INTERACTIVE_MODE_DISABLED);
+```
+
+### `interactiveMode(): string`
+
+Get the current interactive mode.
+
+<ResponseField name="return" type="string">
+  One of: 'auto', 'forced', 'disabled'
+</ResponseField>
+
+### `getInputInteractive(): bool`
+
+Get whether shell input is interactive.
+
+<ResponseField name="return" type="bool">
+  True if input is interactive
+</ResponseField>
+
+## Verbosity
+
+### `setVerbosity(string $verbosity): void`
+
+Set the shell output verbosity.
+
+<ParamField path="verbosity" type="string" required>
+  One of: 'quiet', 'normal', 'verbose', 'very_verbose', 'debug'
+</ParamField>
+
+```php
+use Psy\Configuration;
+
+$config->setVerbosity(Configuration::VERBOSITY_DEBUG);
+$config->setVerbosity(Configuration::VERBOSITY_QUIET);
+```
+
+### `verbosity(): string`
+
+Get the configured output verbosity.
+
+<ResponseField name="return" type="string">
+  One of: 'quiet', 'normal', 'verbose', 'very_verbose', 'debug'
+</ResponseField>
+
+### `getOutputVerbosity(): int`
+
+Map the verbosity configuration to OutputInterface verbosity constants.
+
+<ResponseField name="return" type="int">
+  Symfony Console OutputInterface verbosity level
+</ResponseField>
+
+## Code Execution Configuration
+
+### `setRequireSemicolons(bool $requireSemicolons): void`
+
+Enable or disable strict requirement of semicolons.
+
+<ParamField path="requireSemicolons" type="bool" required>
+  Whether to require semicolons
+</ParamField>
+
+### `requireSemicolons(): bool`
+
+Check whether to require semicolons on all statements.
+
+By default, PsySH will automatically insert semicolons if missing.
+
+<ResponseField name="return" type="bool">
+  True if semicolons are required
+</ResponseField>
+
+### `setStrictTypes(bool $strictTypes): void`
+
+Enable or disable strict types enforcement.
+
+<ParamField path="strictTypes" type="bool" required>
+  Whether to enforce strict types
+</ParamField>
+
+### `strictTypes(): bool`
+
+Check whether to enforce strict types.
+
+<ResponseField name="return" type="bool">
+  True if strict types are enforced
+</ResponseField>
+
+### `setYolo(bool $yolo): void`
+
+Enable or disable running PsySH without input validation.
+
+You don't want this.
+
+<ParamField path="yolo" type="bool" required>
+  Whether to disable validation
+</ParamField>
+
+### `yolo(): bool`
+
+Check whether to disable input validation.
+
+<ResponseField name="return" type="bool">
+  True if validation is disabled
+</ResponseField>
+
+### `setCodeCleaner(CodeCleaner $cleaner): void`
+
+Set a CodeCleaner service instance.
+
+<ParamField path="cleaner" type="CodeCleaner" required>
+  CodeCleaner instance
+</ParamField>
+
+### `getCodeCleaner(): CodeCleaner`
+
+Get a CodeCleaner service instance.
+
+<ResponseField name="return" type="CodeCleaner">
+  CodeCleaner instance
+</ResponseField>
+
+## Error Handling
+
+### `setErrorLoggingLevel(int $errorLoggingLevel): void`
+
+Set the error logging level.
+
+<ParamField path="errorLoggingLevel" type="int" required>
+  Error level bitmask (e.g., E_ALL, E_WARNING)
+</ParamField>
+
+```php
+$config->setErrorLoggingLevel(E_ALL);
+$config->setErrorLoggingLevel(E_WARNING | E_NOTICE);
+$config->setErrorLoggingLevel(0); // disable error logging
+```
+
+### `errorLoggingLevel(): int`
+
+Get the current error logging level.
+
+By default, PsySH logs all errors regardless of `error_reporting` level.
+
+<ResponseField name="return" type="int">
+  Error level bitmask
+</ResponseField>
+
+## Unicode
+
+### `setUseUnicode(bool $useUnicode): void`
+
+Enable or disable Unicode in PsySH specific output.
+
+<ParamField path="useUnicode" type="bool" required>
+  Whether to use Unicode
+</ParamField>
+
+### `useUnicode(): bool`
+
+Check whether to use Unicode in PsySH specific output.
+
+<ResponseField name="return" type="bool">
+  True if Unicode should be used
+</ResponseField>
+
+## Tab Completion
+
+### `setUseTabCompletion(bool $useTabCompletion): void`
+
+Enable or disable tab completion.
+
+<ParamField path="useTabCompletion" type="bool" required>
+  Whether to use tab completion
+</ParamField>
+
+### `useTabCompletion(): bool`
+
+Check whether to use tab completion.
+
+<ResponseField name="return" type="bool">
+  True if tab completion should be used
+</ResponseField>
+
+### `setAutoCompleter(AutoCompleter $autoCompleter): void`
+
+Set the Shell AutoCompleter service.
+
+<ParamField path="autoCompleter" type="AutoCompleter" required>
+  AutoCompleter instance
+</ParamField>
+
+### `getAutoCompleter(): AutoCompleter`
+
+Get an AutoCompleter service instance.
+
+<ResponseField name="return" type="AutoCompleter">
+  AutoCompleter instance
+</ResponseField>
+
+### `addMatchers(array $matchers): void`
+
+Add tab completion matchers to the AutoCompleter.
+
+<ParamField path="matchers" type="array" required>
+  Array of matcher instances
+</ParamField>
+
+## Autoload Warming
+
+### `setWarmAutoload($config): void`
+
+Configure autoload warming.
+
+<ParamField path="config" type="bool|array" required>
+  False to disable, true for defaults, or array for custom config
+</ParamField>
+
+```php
+// Enable with defaults
+$config->setWarmAutoload(true);
+
+// Disable
+$config->setWarmAutoload(false);
+
+// Custom configuration
+$config->setWarmAutoload([
+    'includeVendor' => true,
+    'includeNamespaces' => ['App\\'],
+    'excludeNamespaces' => ['App\\Legacy\\'],
+]);
+```
+
+### `getAutoloadWarmers(): array`
+
+Get configured autoload warmers.
+
+<ResponseField name="return" type="AutoloadWarmerInterface[]">
+  Array of autoload warmer instances
+</ResponseField>
+
+## Implicit Use
+
+### `setImplicitUse($config): void`
+
+Set implicit use statement configuration.
+
+Automatically adds use statements for unqualified class references.
+
+<ParamField path="config" type="false|array" required>
+  False to disable, or array with includeNamespaces/excludeNamespaces
+</ParamField>
+
+```php
+$config->setImplicitUse([
+    'includeNamespaces' => ['App\\', 'Domain\\'],
+    'excludeNamespaces' => ['App\\Legacy\\'],
+]);
+```
+
+### `getImplicitUse(): bool|array`
+
+Get implicit use configuration.
+
+<ResponseField name="return" type="bool|array">
+  Implicit use configuration
+</ResponseField>
+
+## Logging
+
+### `setLogging($logging): void`
+
+Configure logging.
+
+Logs PsySH input, commands, and executed code.
+
+<ParamField path="logging" type="LoggerInterface|callable|array" required>
+  PSR-3 logger, callback, or config array
+</ParamField>
+
+```php
+// Simple callback logging
+$config->setLogging(function ($kind, $data) {
+    file_put_contents('/tmp/psysh.log', "[$kind] $data\n", FILE_APPEND);
+});
+
+// PSR-3 logger
+$config->setLogging($psrLogger);
+
+// Granular control
+$config->setLogging([
+    'logger' => $psrLogger,
+    'level' => [
+        'input' => 'info',
+        'command' => false,
+        'execute' => 'debug',
+    ],
+]);
+```
+
+### `getLogger(): ?ShellLogger`
+
+Get a ShellLogger instance if logging is configured.
+
+<ResponseField name="return" type="ShellLogger|null">
+  Logger instance, or null
+</ResponseField>
+
+## Commands and Matchers
+
+### `addCommands(array $commands): void`
+
+Add commands to the Shell.
+
+<ParamField path="commands" type="array" required>
+  Array of Command instances
+</ParamField>
+
+```php
+$config->addCommands([
+    new MyCustomCommand(),
+]);
+```
+
+### `setShell(Shell $shell): void`
+
+Set the Shell backreference and add any new commands.
+
+<ParamField path="shell" type="Shell" required>
+  Shell instance
+</ParamField>
+
+## Manual Configuration
+
+### `setManualDbFile(string $filename): void`
+
+Set the PHP manual database file.
+
+<ParamField path="filename" type="string" required>
+  Path to manual database file (SQLite or PHP)
+</ParamField>
+
+### `getManualDbFile(): ?string`
+
+Get the current PHP manual database file.
+
+<ResponseField name="return" type="string|null">
+  Manual database file path, or null
+</ResponseField>
+
+### `getManual(): ?ManualInterface`
+
+Get a PHP manual instance.
+
+Automatically detects format (v2 SQLite or v3 PHP).
+
+<ResponseField name="return" type="ManualInterface|null">
+  Manual instance, or null if none available
+</ResponseField>
+
+## Update Checking
+
+### `setUpdateCheck(string $interval): void`
+
+Set the update check interval.
+
+<ParamField path="interval" type="string" required>
+  One of: 'always', 'daily', 'weekly', 'monthly', 'never'
+</ParamField>
+
+```php
+use Psy\VersionUpdater\Checker;
+
+$config->setUpdateCheck(Checker::DAILY);
+$config->setUpdateCheck(Checker::NEVER);
+```
+
+### `getUpdateCheck(): string`
+
+Get the current update check interval.
+
+<ResponseField name="return" type="string">
+  One of: 'always', 'daily', 'weekly', 'monthly', 'never'
+</ResponseField>
+
+### `getChecker(): Checker`
+
+Get an update checker service instance.
+
+<ResponseField name="return" type="Checker">
+  Update checker instance
+</ResponseField>
+
+## Project Trust
+
+### `setTrustProject($mode): void`
+
+Configure the project trust mode.
+
+<ParamField path="mode" type="bool|string|null" required>
+  Boolean, or one of: 'prompt', 'always', 'never'
+</ParamField>
+
+```php
+use Psy\Configuration;
+
+$config->setTrustProject(true); // always trust
+$config->setTrustProject(false); // never trust
+$config->setTrustProject(Configuration::PROJECT_TRUST_PROMPT);
+```
+
+### `getProjectTrustMode(): string`
+
+Get the current project trust mode.
+
+<ResponseField name="return" type="string">
+  One of: 'prompt', 'always', 'never'
+</ResponseField>
+
+## Constants
+
+<ResponseField name="COLOR_MODE_AUTO" type="string">
+  Auto-detect color support (default)
+</ResponseField>
+
+<ResponseField name="COLOR_MODE_FORCED" type="string">
+  Force color output
+</ResponseField>
+
+<ResponseField name="COLOR_MODE_DISABLED" type="string">
+  Disable color output
+</ResponseField>
+
+<ResponseField name="INTERACTIVE_MODE_AUTO" type="string">
+  Auto-detect interactive mode (default)
+</ResponseField>
+
+<ResponseField name="INTERACTIVE_MODE_FORCED" type="string">
+  Force interactive mode
+</ResponseField>
+
+<ResponseField name="INTERACTIVE_MODE_DISABLED" type="string">
+  Disable interactive mode
+</ResponseField>
+
+<ResponseField name="PROJECT_TRUST_PROMPT" type="string">
+  Prompt user for project trust (default)
+</ResponseField>
+
+<ResponseField name="PROJECT_TRUST_ALWAYS" type="string">
+  Always trust projects
+</ResponseField>
+
+<ResponseField name="PROJECT_TRUST_NEVER" type="string">
+  Never trust projects (restricted mode)
+</ResponseField>
+
+<ResponseField name="VERBOSITY_QUIET" type="string">
+  Quiet output level
+</ResponseField>
+
+<ResponseField name="VERBOSITY_NORMAL" type="string">
+  Normal output level (default)
+</ResponseField>
+
+<ResponseField name="VERBOSITY_VERBOSE" type="string">
+  Verbose output level
+</ResponseField>
+
+<ResponseField name="VERBOSITY_VERY_VERBOSE" type="string">
+  Very verbose output level
+</ResponseField>
+
+<ResponseField name="VERBOSITY_DEBUG" type="string">
+  Debug output level
+</ResponseField>
+
+## Usage Example
+
+```php
+use Psy\Configuration;
+use Psy\Shell;
+
+$config = new Configuration([
+    // Directories
+    'configDir' => '/custom/config',
+    'dataDir' => '/custom/data',
+    
+    // Appearance
+    'colorMode' => Configuration::COLOR_MODE_FORCED,
+    'theme' => 'compact',
+    'useUnicode' => true,
+    
+    // Behavior
+    'requireSemicolons' => false,
+    'strictTypes' => true,
+    'useTabCompletion' => true,
+    
+    // Files to include on startup
+    'defaultIncludes' => [
+        __DIR__ . '/bootstrap.php',
+    ],
+    
+    // History
+    'historySize' => 5000,
+    'eraseDuplicates' => true,
+    
+    // Autoload warming
+    'warmAutoload' => [
+        'includeNamespaces' => ['App\\'],
+    ],
+]);
+
+$shell = new Shell($config);
+$shell->run();
+```

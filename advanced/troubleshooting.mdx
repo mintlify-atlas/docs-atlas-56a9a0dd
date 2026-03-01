@@ -1,0 +1,734 @@
+---
+title: Troubleshooting
+description: Common issues, error messages, and solutions for PsySH
+---
+
+This guide covers common problems you might encounter with PsySH and how to resolve them.
+
+## Installation Issues
+
+<Accordion title="Dependencies not found">
+  **Error:**
+  ```
+  PsySH dependencies not found, be sure to run `composer install`.
+  See https://getcomposer.org to get Composer.
+  ```
+  
+  **Cause**: PsySH's dependencies are not installed.
+  
+  **Solution**:
+  
+  If you cloned the repository:
+  ```bash
+  composer install
+  ```
+  
+  If using globally:
+  ```bash
+  composer global require psy/psysh
+  ```
+  
+  From `bin/psysh:329-332`.
+</Accordion>
+
+<Accordion title="Class 'Psy\Shell' not found">
+  **Error:**
+  ```php
+  Fatal error: Class 'Psy\Shell' not found
+  ```
+  
+  **Cause**: PsySH is not autoloaded properly.
+  
+  **Solution**:
+  
+  Ensure you've included the Composer autoloader:
+  ```php
+  require __DIR__ . '/vendor/autoload.php';
+  ```
+  
+  Or if installed globally, the `psysh` binary should handle this automatically.
+</Accordion>
+
+<Accordion title="Cannot download manual">
+  **Error:**
+  ```
+  Downloading manual v3.0... Failed.
+  Error: Could not download file
+  ```
+  
+  **Cause**: Network connectivity issues or GitHub unavailable.
+  
+  **Solutions**:
+  
+  1. **Check internet connection**:
+     ```bash
+     curl -I https://github.com
+     ```
+  
+  2. **Check firewall/proxy**: Ensure GitHub is not blocked
+  
+  3. **Try different downloader**: PsySH tries cURL, then falls back to `file_get_contents`
+  
+  4. **Manual download**:
+     - Download from [PsySH releases](https://github.com/bobthecow/psysh/releases)
+     - Place in `~/.local/share/psysh/php_manual.php`
+</Accordion>
+
+## Runtime Errors
+
+<Accordion title="Parse error when entering code">
+  **Error:**
+  ```php
+  >>> function test() {
+  PHP Parse error:  syntax error, unexpected end of file
+  ```
+  
+  **Cause**: Multi-line code requires all lines before execution.
+  
+  **Solution**: Complete the code block:
+  ```php
+  >>> function test() {
+  ...   return 'hello';
+  ... }
+  => null
+  ```
+  
+  Or use semicolons to force execution:
+  ```php
+  >>> function test() { return 'hello'; }
+  => null
+  ```
+</Accordion>
+
+<Accordion title="Variable not found">
+  **Error:**
+  ```php
+  >>> echo $myvar
+  PHP Notice:  Undefined variable: myvar
+  ```
+  
+  **Cause**: Variable hasn't been defined in current scope.
+  
+  **Solution**: 
+  
+  List defined variables:
+  ```php
+  >>> ls
+  Variables: $_
+  ```
+  
+  Define the variable first:
+  ```php
+  >>> $myvar = 'value'
+  => "value"
+  
+  >>> echo $myvar
+  value
+  ```
+</Accordion>
+
+<Accordion title="Fatal error crashes PsySH">
+  **Error**: PsySH exits completely after a fatal error.
+  
+  **Cause**: Process forking is disabled or unavailable.
+  
+  **Solution**: Enable process forking (requires `pcntl` extension):
+  
+  In `.psysh.php`:
+  ```php
+  return [
+      'usePcntl' => true,
+  ];
+  ```
+  
+  Install pcntl (if not available):
+  ```bash
+  # On Ubuntu/Debian
+  sudo apt-get install php-pcntl
+  
+  # On macOS (already included)
+  # No action needed
+  
+  # On Windows
+  # pcntl is not available
+  ```
+  
+  Check if available:
+  ```php
+  >>> extension_loaded('pcntl')
+  => true
+  ```
+</Accordion>
+
+<Accordion title="Infinite loop cannot be stopped">
+  **Error**: Code is stuck in infinite loop, Ctrl+C doesn't work.
+  
+  **Cause**: Signal handling is disabled or unavailable.
+  
+  **Solutions**:
+  
+  1. **Force terminate**: Press Ctrl+\ (SIGQUIT) or kill from another terminal
+  
+  2. **Enable pcntl** for better signal handling:
+     ```php
+     return [
+         'usePcntl' => true,
+     ];
+     ```
+  
+  3. **Use timeout**: Set execution time limit:
+     ```php
+     >>> set_time_limit(5);
+     >>> while(true) { sleep(1); }
+     PHP Fatal error: Maximum execution time of 5 seconds exceeded
+     ```
+</Accordion>
+
+## Configuration Issues
+
+<Accordion title="Config file not loaded">
+  **Error**: Configuration in `.psysh.php` is not applied.
+  
+  **Cause**: Config file is in wrong location or has syntax errors.
+  
+  **Solution**:
+  
+  1. **Check file location**:
+     ```bash
+     # Should be in one of:
+     ~/.config/psysh/config.php
+     # or
+     ~/.psysh.php
+     # or project root
+     .psysh.php
+     ```
+  
+  2. **Verify syntax**:
+     ```bash
+     php -l ~/.config/psysh/config.php
+     ```
+  
+  3. **Check return value**:
+     ```php
+     <?php
+     // Must return an array
+     return [
+         'colorMode' => 'forced',
+     ];
+     ```
+  
+  4. **Use PSYSH_CONFIG environment variable**:
+     ```bash
+     export PSYSH_CONFIG=/path/to/config.php
+     psysh
+     ```
+</Accordion>
+
+<Accordion title="Multiple config files warning">
+  **Warning:**
+  ```
+  Warning: Multiple configuration files found:
+    - /home/user/.config/psysh/config.php
+    - /home/user/.psysh.php
+  Using /home/user/.config/psysh/config.php
+  ```
+  
+  **Cause**: PsySH found multiple config files and is warning about which one it's using.
+  
+  **Solution**: Remove duplicate config files, keep only one:
+  ```bash
+  # Keep the XDG-compliant location
+  rm ~/.psysh.php
+  ```
+  
+  Or disable the warning:
+  ```php
+  return [
+      'warnOnMultipleConfigs' => false,
+  ];
+  ```
+</Accordion>
+
+<Accordion title="Invalid configuration option">
+  **Error**: PsySH ignores unknown configuration options.
+  
+  **Cause**: Typo or invalid option name.
+  
+  **Solution**: Check valid options in `src/Configuration.php:62-98`:
+  
+  ```php
+  return [
+      'colorMode',         // not 'colourMode'
+      'configDir',         // not 'configDirectory'
+      'historyFile',       // not 'historyPath'
+      'manualDbFile',      // not 'manualFile'
+      'usePcntl',          // not 'enablePcntl'
+      'useTabCompletion',  // not 'tabCompletion'
+      // ... etc
+  ];
+  ```
+</Accordion>
+
+## Autoloading Issues
+
+<Accordion title="Project classes not found">
+  **Error:**
+  ```php
+  >>> $obj = new App\MyClass
+  PHP Fatal error: Class 'App\MyClass' not found
+  ```
+  
+  **Cause**: Project autoloader not loaded.
+  
+  **Solution**:
+  
+  1. **Trust the project**:
+     ```bash
+     psysh --trust-project
+     ```
+  
+  2. **Manually load autoloader**:
+     ```php
+     >>> require 'vendor/autoload.php'
+     >>> $obj = new App\MyClass
+     => App\MyClass {#123}
+     ```
+  
+  3. **Check if autoloader exists**:
+     ```bash
+     ls -la vendor/autoload.php
+     ```
+  
+  4. **Run composer install** if missing:
+     ```bash
+     composer install
+     ```
+</Accordion>
+
+<Accordion title="Skipping project autoload warning">
+  **Warning:**
+  ```
+  Skipping project autoload (vendor/autoload.php) in untrusted project ~/project. 
+  Use --trust-project to allow.
+  ```
+  
+  **Cause**: Project is not in trusted projects list.
+  
+  **Solution**:
+  
+  Trust the project:
+  ```bash
+  psysh --trust-project
+  ```
+  
+  Or configure global trust (not recommended):
+  ```php
+  return [
+      'trustProject' => 'always', // dangerous!
+  ];
+  ```
+  
+  See [Project Trust](/advanced/project-trust) for more details.
+</Accordion>
+
+<Accordion title="Local PsySH skipped">
+  **Warning:**
+  ```
+  Skipping local PsySH at ~/project (project is untrusted). 
+  Re-run with --trust-project to allow.
+  ```
+  
+  **Cause**: Project has local PsySH but is not trusted.
+  
+  **Solution**:
+  
+  ```bash
+  psysh --trust-project
+  ```
+  
+  Or run the local version directly:
+  ```bash
+  ./vendor/bin/psysh
+  ```
+</Accordion>
+
+## Display Issues
+
+<Accordion title="No colors in output">
+  **Problem**: Output is plain text without colors.
+  
+  **Causes & Solutions**:
+  
+  1. **Terminal doesn't support colors**:
+     ```bash
+     # Check TERM
+     echo $TERM
+     # Should be: xterm-256color, screen-256color, etc.
+     ```
+  
+  2. **Force color mode**:
+     ```php
+     return [
+         'colorMode' => \Psy\Configuration::COLOR_MODE_FORCED,
+     ];
+     ```
+  
+  3. **On Windows**: Use Windows Terminal or ConEmu for better color support
+</Accordion>
+
+<Accordion title="Garbled characters or boxes">
+  **Problem**: Special characters display as boxes or garbage.
+  
+  **Cause**: Unicode/UTF-8 not supported or enabled.
+  
+  **Solution**:
+  
+  1. **Set terminal encoding to UTF-8**:
+     ```bash
+     export LANG=en_US.UTF-8
+     export LC_ALL=en_US.UTF-8
+     ```
+  
+  2. **Disable Unicode in PsySH**:
+     ```php
+     return [
+         'useUnicode' => false,
+     ];
+     ```
+</Accordion>
+
+<Accordion title="Output too wide for terminal">
+  **Problem**: Output doesn't wrap correctly.
+  
+  **Solution**: PsySH auto-detects terminal width, but you can configure pager:
+  
+  ```php
+  return [
+      'pager' => 'less -R',
+  ];
+  ```
+  
+  Or disable pager:
+  ```php
+  return [
+      'pager' => false,
+  ];
+  ```
+</Accordion>
+
+## Readline Issues
+
+<Accordion title="No command history">
+  **Problem**: Up/down arrows don't recall previous commands.
+  
+  **Cause**: Readline extension not available or history disabled.
+  
+  **Solution**:
+  
+  1. **Check readline**:
+     ```php
+     >>> extension_loaded('readline')
+     => false  // Problem!
+     ```
+  
+  2. **Install readline**:
+     ```bash
+     # Ubuntu/Debian
+     sudo apt-get install php-readline
+     
+     # macOS (Homebrew)
+     brew install php
+     ```
+  
+  3. **Configure history file**:
+     ```php
+     return [
+         'historyFile' => '~/.psysh_history',
+         'historySize' => 5000,
+     ];
+     ```
+</Accordion>
+
+<Accordion title="Tab completion not working">
+  **Problem**: Tab doesn't complete code.
+  
+  **Cause**: Tab completion disabled or unsupported.
+  
+  **Solution**:
+  
+  Enable tab completion:
+  ```php
+  return [
+      'useTabCompletion' => true,
+  ];
+  ```
+  
+  Check if working:
+  ```php
+  >>> array_m<TAB>
+  array_map        array_merge      array_multisort
+  ```
+</Accordion>
+
+<Accordion title="Bracketed paste issues">
+  **Problem**: Pasting code inserts escape sequences.
+  
+  **Cause**: Bracketed paste mode incompatible with terminal.
+  
+  **Solution**: Disable bracketed paste:
+  
+  ```php
+  return [
+      'useBracketedPaste' => false,
+  ];
+  ```
+</Accordion>
+
+## Manual/Documentation Issues
+
+<Accordion title="Manual not found">
+  **Error:**
+  ```php
+  >>> doc strlen
+  PHP manual not found.
+  
+  To document core PHP functionality, download the PHP reference manual:
+      doc --update-manual
+  ```
+  
+  **Solution**: Download the manual:
+  ```php
+  >>> doc --update-manual
+  Downloading manual v3.0... OK
+  Installed manual v3.0 to ~/.local/share/psysh/php_manual.php
+  ```
+</Accordion>
+
+<Accordion title="Invalid manual file">
+  **Error:**
+  ```
+  Invalid manual file detected: ~/.local/share/psysh/php_manual.php
+  ```
+  
+  **Cause**: Manual file is corrupted or wrong format.
+  
+  **Solution**: Remove and re-download:
+  ```php
+  >>> doc --update-manual
+  Remove this file and continue? [Y/n] y
+  Downloading manual v3.0... OK
+  ```
+  
+  Or manually:
+  ```bash
+  rm ~/.local/share/psysh/php_manual.php
+  psysh
+  >>> doc --update-manual
+  ```
+</Accordion>
+
+<Accordion title="Multiple manual files warning">
+  **Warning:**
+  ```
+  Multiple manual database files found: php_manual.php, php_manual.sqlite. 
+  Using php_manual.php
+  ```
+  
+  **Cause**: Both V2 (SQLite) and V3 (PHP) formats exist.
+  
+  **Solution**: Remove old SQLite format:
+  ```bash
+  rm ~/.local/share/psysh/php_manual.sqlite
+  ```
+  
+  This is informational - PsySH correctly uses the newer format.
+</Accordion>
+
+## Permission Issues
+
+<Accordion title="Data directory not writable">
+  **Error:**
+  ```
+  Data directory is not writable.
+  ```
+  
+  **Cause**: No write permission to data directory.
+  
+  **Solution**:
+  
+  Fix permissions:
+  ```bash
+  chmod u+w ~/.local/share/psysh
+  ```
+  
+  Or use custom directory:
+  ```php
+  return [
+      'dataDir' => '/writable/path/psysh-data',
+  ];
+  ```
+</Accordion>
+
+<Accordion title="Cannot save history">
+  **Problem**: Command history not persisting between sessions.
+  
+  **Cause**: History file not writable.
+  
+  **Solution**:
+  
+  ```bash
+  chmod u+w ~/.config/psysh/psysh_history
+  ```
+  
+  Or specify different location:
+  ```php
+  return [
+      'historyFile' => '/tmp/psysh_history',
+  ];
+  ```
+</Accordion>
+
+<Accordion title="Cannot save trust settings">
+  **Warning:**
+  ```
+  Unable to save trust settings. Trusting /path/to/project for this session only.
+  ```
+  
+  **Cause**: Config directory not writable.
+  
+  **Solution**:
+  
+  ```bash
+  chmod u+w ~/.config/psysh
+  ```
+</Accordion>
+
+## Performance Issues
+
+<Accordion title="Slow startup time">
+  **Problem**: PsySH takes several seconds to start.
+  
+  **Causes & Solutions**:
+  
+  1. **Large autoload files**: Disable autoload warming:
+     ```php
+     return [
+         'warmAutoload' => false,
+     ];
+     ```
+  
+  2. **Update checks**: Disable automatic updates:
+     ```php
+     return [
+         'updateCheck' => null,
+         'updateManualCheck' => null,
+     ];
+     ```
+  
+  3. **Too many includes**: Reduce default includes:
+     ```php
+     return [
+         'defaultIncludes' => [],
+     ];
+     ```
+</Accordion>
+
+<Accordion title="Slow tab completion">
+  **Problem**: Tab completion takes a long time.
+  
+  **Cause**: Large number of classes/functions to scan.
+  
+  **Solution**: Disable tab completion:
+  
+  ```php
+  return [
+      'useTabCompletion' => false,
+  ];
+  ```
+  
+  Or disable autoload warming:
+  ```php
+  return [
+      'warmAutoload' => false,
+  ];
+  ```
+</Accordion>
+
+## Platform-Specific Issues
+
+<Accordion title="Windows: Colors not working">
+  **Problem**: No colored output on Windows.
+  
+  **Solution**: Use Windows Terminal or enable ANSI support:
+  
+  In PowerShell:
+  ```powershell
+  $env:ANSICON = 1
+  psysh
+  ```
+  
+  Or in config:
+  ```php
+  return [
+      'colorMode' => \Psy\Configuration::COLOR_MODE_FORCED,
+  ];
+  ```
+</Accordion>
+
+<Accordion title="Windows: pcntl not available">
+  **Problem**: Process forking features unavailable.
+  
+  **Cause**: `pcntl` extension doesn't exist on Windows.
+  
+  **Solution**: This is a Windows limitation. Use fallback signal handler:
+  
+  ```php
+  return [
+      'usePcntl' => false,
+  ];
+  ```
+  
+  Note: Fatal errors will crash PsySH without pcntl.
+</Accordion>
+
+<Accordion title="macOS: Readline behaves differently">
+  **Problem**: macOS uses libedit instead of GNU Readline.
+  
+  **Solution**: Install GNU Readline:
+  
+  ```bash
+  brew install php --with-readline
+  ```
+  
+  Or configure libedit in `~/.editrc`:
+  ```
+  bind ^R em-inc-search-prev
+  ```
+</Accordion>
+
+## Getting More Help
+
+<Tip>
+If your issue isn't covered here:
+
+1. **Check version**: Make sure you're running the latest version:
+   ```bash
+   composer global update psy/psysh
+   ```
+
+2. **Enable debug output**:
+   ```php
+   return [
+       'verbosity' => \Psy\Configuration::VERBOSITY_DEBUG,
+   ];
+   ```
+
+3. **Search issues**: Check [GitHub Issues](https://github.com/bobthecow/psysh/issues)
+
+4. **Report a bug**: Open a new issue with:
+   - PsySH version (`psysh --version`)
+   - PHP version (`php -v`)
+   - Operating system
+   - Steps to reproduce
+   - Error messages
+</Tip>

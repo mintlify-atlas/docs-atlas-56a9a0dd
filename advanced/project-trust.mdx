@@ -1,0 +1,525 @@
+---
+title: Project Trust Security
+description: Understand PsySH's project trust system for secure autoloading and code execution
+---
+
+PsySH implements a project trust system to protect you from accidentally executing untrusted code when running the REPL in different project directories.
+
+## Why Project Trust?
+
+When you run PsySH in a project directory, it can automatically:
+
+- Load the project's `vendor/autoload.php` (Composer autoloader)
+- Use a local PsySH installation from `vendor/bin/psysh`
+- Execute configuration files from `.psysh.php`
+
+These features are convenient, but could be exploited by malicious projects to execute arbitrary code when you enter a directory.
+
+<Warning>
+**Security Risk**: Without trust protection, simply running `psysh` in a malicious project directory could execute harmful code from:
+- Composer autoload scripts
+- Local PsySH configuration files
+- Custom PsySH installations
+</Warning>
+
+## Trust Modes
+
+PsySH supports three trust modes, defined in `src/Configuration.php:52-54`:
+
+### Prompt Mode (Default)
+
+```php
+const PROJECT_TRUST_PROMPT = 'prompt';
+```
+
+Prompts you interactively when entering an untrusted project:
+
+```
+Unrecognized project /Users/username/suspicious-project
+
+Untrusted projects run in Restricted Mode to protect your system.
+
+Trusting this project would enable:
+  - Composer autoload (vendor/autoload.php)
+  - Local PsySH configuration (.psysh.php)
+
+Trust and continue? (y/N)
+```
+
+From `src/ProjectTrust.php:234-258`.
+
+### Always Trust Mode
+
+```php
+const PROJECT_TRUST_ALWAYS = 'always';
+```
+
+Trusts all projects automatically. **Use with caution!**
+
+Set in `.psysh.php`:
+
+```php
+return [
+    'trustProject' => 'always',
+];
+```
+
+Or via environment:
+
+```bash
+export PSYSH_TRUST_PROJECT=true
+psysh
+```
+
+### Never Trust Mode
+
+```php
+const PROJECT_TRUST_NEVER = 'never';
+```
+
+Runs all projects in restricted mode, never loading local code.
+
+Set in `.psysh.php`:
+
+```php
+return [
+    'trustProject' => 'never',
+];
+```
+
+Or via environment:
+
+```bash
+export PSYSH_TRUST_PROJECT=false
+psysh
+```
+
+## Command-Line Flags
+
+### Trust This Project
+
+```bash
+psysh --trust-project
+```
+
+Trusts the current project for this session and saves it to the trust file.
+
+From `bin/psysh:40-46`:
+
+```php
+if ($arg === '--trust-project') {
+    $forceTrust = true;
+    $forceUntrust = false;
+} elseif ($arg === '--no-trust-project') {
+    $forceUntrust = true;
+    $forceTrust = false;
+}
+```
+
+### Don't Trust This Project
+
+```bash
+psysh --no-trust-project
+```
+
+Runs in restricted mode for this session without prompting.
+
+## Trust Persistence
+
+Trusted projects are stored in a JSON file for persistence across sessions.
+
+### Trust File Location
+
+From `src/ProjectTrust.php:449-457`:
+
+```php
+public function getProjectTrustFilePath(): ?string
+{
+    $configDir = $this->configPaths->currentConfigDir();
+    if ($configDir === null) {
+        return null;
+    }
+
+    return $configDir.'/trusted_projects.json';
+}
+```
+
+**Default locations:**
+
+- Linux/macOS: `~/.config/psysh/trusted_projects.json`
+- Windows: `%APPDATA%\PsySH\trusted_projects.json`
+
+### Trust File Format
+
+The trust file stores an array of trusted project root paths:
+
+```json
+[
+  "/Users/username/my-project",
+  "/Users/username/trusted-app",
+  "/var/www/production-site"
+]
+```
+
+From `src/ProjectTrust.php:430-444`:
+
+```php
+public function saveTrustedProjectRoots(array $roots): bool
+{
+    $roots = array_values(array_unique(array_filter($roots, 'is_string')));
+    $json = json_encode($roots, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    if ($json === false) {
+        return false;
+    }
+
+    return file_put_contents($trustFile, $json.PHP_EOL) !== false;
+}
+```
+
+### Session-Only Trust
+
+If the trust file cannot be written (permissions issue), PsySH falls back to session-only trust:
+
+```
+Warning: Unable to save trust settings. Trusting /path/to/project for this session only.
+```
+
+From `src/ProjectTrust.php:172-190`:
+
+```php
+public function trustProjectRoot(string $root, ?OutputInterface $output = null): bool
+{
+    $root = $this->normalizeProjectRoot($root);
+    $trustedRoots = $this->getTrustedProjectRoots();
+    if (!in_array($root, $trustedRoots, true)) {
+        $trustedRoots[] = $root;
+    }
+
+    if (!$this->saveTrustedProjectRoots($trustedRoots)) {
+        if ($output !== null) {
+            $this->warnTrustPersistenceFailed($root, $output);
+        }
+        $this->sessionTrustedRoots[] = $root;
+
+        return true;
+    }
+
+    return true;
+}
+```
+
+## Project Root Detection
+
+PsySH determines the project root by walking up directories looking for `composer.json`.
+
+From `src/ProjectTrust.php:276-284`:
+
+```php
+public function getProjectRoot(): ?string
+{
+    $root = $this->configPaths->projectRoot();
+    if ($root === null) {
+        return null;
+    }
+
+    return $this->normalizeProjectRoot($root);
+}
+```
+
+### Path Normalization
+
+Paths are normalized to absolute, real paths:
+
+From `src/ProjectTrust.php:263-271`:
+
+```php
+public function normalizeProjectRoot(string $root): string
+{
+    $realRoot = realpath($root);
+    if ($realRoot !== false) {
+        $root = $realRoot;
+    }
+
+    return str_replace('\\', '/', $root);
+}
+```
+
+This ensures `/path/to/project` and `/path/to/project/` are treated as the same project.
+
+## Restricted Mode
+
+When a project is not trusted, PsySH runs in restricted mode:
+
+### What's Disabled
+
+1. **Composer Autoload**: `vendor/autoload.php` is not loaded
+2. **Local Configuration**: `.psysh.php` is not loaded
+3. **Local PsySH Binary**: Won't switch to local `vendor/bin/psysh`
+
+### Autoload Warning
+
+From `src/ProjectTrust.php:210-225`:
+
+```php
+public function warnUntrustedAutoloadWarming(string $projectRoot, OutputInterface $output): void
+{
+    if ($this->warnedUntrustedAutoload) {
+        return;
+    }
+
+    $this->warnedUntrustedAutoload = true;
+    if ($output instanceof \Symfony\Component\Console\Output\ConsoleOutput) {
+        $output = $output->getErrorOutput();
+    }
+
+    $prettyDir = ConfigPaths::prettyPath($projectRoot);
+    $output->writeln(
+        "<comment>Skipping project autoload (vendor/autoload.php) in untrusted project {$prettyDir}. Use --trust-project to allow.</comment>"
+    );
+}
+```
+
+You'll see:
+
+```
+Skipping project autoload (vendor/autoload.php) in untrusted project ~/suspicious-project. 
+Use --trust-project to allow.
+```
+
+## Local PsySH Detection
+
+PsySH can detect and use a local installation, but only if trusted.
+
+### Detection Logic
+
+From `bin/psysh:256-283`, the launcher looks for:
+
+1. `composer.json` with `"name": "psy/psysh"`
+2. `composer.lock` with `psy/psysh` package
+
+If found and trusted:
+
+```
+Using local PsySH version at ~/my-project
+```
+
+If found but untrusted:
+
+```
+Skipping local PsySH at ~/my-project (project is untrusted). Re-run with --trust-project to allow.
+```
+
+From `bin/psysh:240-245`:
+
+```php
+$markUntrustedProject = function ($projectPath, $prettyPath) {
+    fwrite(STDERR, 'Skipping local PsySH at ' . $prettyPath . ' (project is untrusted). Re-run with --trust-project to allow.' . PHP_EOL);
+    $_SERVER['PSYSH_UNTRUSTED_PROJECT'] = $projectPath;
+    $_ENV['PSYSH_UNTRUSTED_PROJECT'] = $projectPath;
+    putenv('PSYSH_UNTRUSTED_PROJECT='.$projectPath);
+};
+```
+
+## Environment Variables
+
+### PSYSH_TRUST_PROJECT
+
+Controls trust mode globally:
+
+```bash
+# Trust all projects (dangerous!)
+export PSYSH_TRUST_PROJECT=true
+# or
+export PSYSH_TRUST_PROJECT=1
+
+# Never trust projects
+export PSYSH_TRUST_PROJECT=false
+# or
+export PSYSH_TRUST_PROJECT=0
+```
+
+From `src/ProjectTrust.php:64-78`:
+
+```php
+public function setModeFromEnv(string $value): void
+{
+    switch (strtolower(trim($value))) {
+        case 'true':
+        case '1':
+            $this->mode = Configuration::PROJECT_TRUST_ALWAYS;
+            break;
+        case 'false':
+        case '0':
+            $this->mode = Configuration::PROJECT_TRUST_NEVER;
+            break;
+        default:
+            throw new \InvalidArgumentException('Invalid PSYSH_TRUST_PROJECT value. Expected: true, 1, false, or 0');
+    }
+}
+```
+
+### PSYSH_UNTRUSTED_PROJECT
+
+Internal variable set by the launcher to pass context between global and local PsySH instances.
+
+## Configuration
+
+### In .psysh.php
+
+Set the trust mode in your global config:
+
+```php
+// ~/.config/psysh/config.php
+return [
+    'trustProject' => 'prompt', // or 'always', 'never'
+];
+```
+
+### Programmatic Usage
+
+```php
+use Psy\Configuration;
+use Psy\Shell;
+
+$config = new Configuration([
+    'trustProject' => 'always',
+]);
+
+$shell = new Shell($config);
+$shell->run();
+```
+
+## Best Practices
+
+<Accordion title="Use prompt mode (default)">
+  The default prompt mode provides the best balance of security and convenience:
+  
+  - You're protected from accidentally running untrusted code
+  - You can quickly trust projects you recognize
+  - Trust decisions persist across sessions
+</Accordion>
+
+<Accordion title="Review trust prompts carefully">
+  When prompted to trust a project, verify:
+  
+  - Is this a project you created or control?
+  - Do you trust the code in `vendor/autoload.php`?
+  - Is the `.psysh.php` config file safe?
+  
+  When in doubt, choose "No" and run in restricted mode.
+</Accordion>
+
+<Accordion title="Audit your trusted projects">
+  Periodically review `~/.config/psysh/trusted_projects.json`:
+  
+  ```bash
+  cat ~/.config/psysh/trusted_projects.json
+  ```
+  
+  Remove projects you no longer work with or trust.
+</Accordion>
+
+<Accordion title="Use --no-trust-project for exploration">
+  When exploring unfamiliar codebases:
+  
+  ```bash
+  cd /path/to/unknown-project
+  psysh --no-trust-project
+  ```
+  
+  This prevents any project code from executing automatically.
+</Accordion>
+
+<Accordion title="Never use 'always' mode on shared systems">
+  On shared development servers or CI environments, use `never` mode:
+  
+  ```bash
+  export PSYSH_TRUST_PROJECT=false
+  ```
+  
+  This prevents any automatic code execution.
+</Accordion>
+
+## Security Considerations
+
+<Warning>
+**Trusting a project allows**:
+
+1. Execution of Composer autoload scripts
+2. Loading of local PsySH configuration
+3. Running code from `vendor/bin/psysh`
+
+Only trust projects from sources you control or verify.
+</Warning>
+
+<Warning>
+**Attack Vector**: A malicious project could:
+
+- Execute code via Composer autoload files
+- Exfiltrate data through `.psysh.php` config
+- Replace the PsySH binary with a malicious version
+
+Always review projects before trusting them.
+</Warning>
+
+## Troubleshooting
+
+<Accordion title="Trust prompt not appearing">
+  If you're not seeing trust prompts:
+  
+  **Check your trust mode**:
+  ```bash
+  # View current config
+  cat ~/.config/psysh/config.php
+  
+  # Check environment
+  echo $PSYSH_TRUST_PROJECT
+  ```
+  
+  **Solution**: Ensure mode is set to `'prompt'` or not set at all.
+</Accordion>
+
+<Accordion title="Cannot save trust settings">
+  ```
+  Warning: Unable to save trust settings. Trusting /path/to/project for this session only.
+  ```
+  
+  **Cause**: Config directory is not writable.
+  
+  **Solution**: Fix permissions:
+  ```bash
+  chmod u+w ~/.config/psysh
+  ```
+</Accordion>
+
+<Accordion title="Project not loading despite trust">
+  If autoload isn't loading even after trusting:
+  
+  **Verify project is in trust file**:
+  ```bash
+  cat ~/.config/psysh/trusted_projects.json
+  ```
+  
+  **Check for path mismatches**: The stored path must exactly match the normalized path.
+  
+  **Re-trust the project**:
+  ```bash
+  psysh --trust-project
+  ```
+</Accordion>
+
+<Accordion title="How to untrust a project">
+  Edit the trust file manually:
+  
+  ```bash
+  # Edit the file
+  nano ~/.config/psysh/trusted_projects.json
+  
+  # Remove the project path from the JSON array
+  ```
+  
+  Or delete the trust file entirely to start fresh:
+  ```bash
+  rm ~/.config/psysh/trusted_projects.json
+  ```
+</Accordion>

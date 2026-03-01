@@ -1,0 +1,332 @@
+---
+title: wtf Command
+description: Show the backtrace of the most recent exception (What The Failure)
+---
+
+The `wtf` command displays the backtrace of the last uncaught exception. The name stands for "What The Failure" (or, you know, the other thing). The more question marks or exclamation points you add, the more stack trace lines are shown.
+
+## Syntax
+
+```php
+wtf [?!?!...] [options]
+```
+
+## Aliases
+
+- `last-exception`
+- `wtf?`
+
+## Arguments
+
+<ParamField path="incredulity" type="string">
+  A string of question marks (`?`) and/or exclamation points (`!`). The longer the string, the more backtrace lines are shown.
+  
+  - No argument: Shows 8 lines (default)
+  - `?`: Shows 16 lines
+  - `??`: Shows 32 lines  
+  - `???`: Shows 64 lines
+  - Each additional character doubles the count
+</ParamField>
+
+## Options
+
+<ParamField path="--all" type="flag">
+  **Alias:** `-a`
+  
+  Show the entire backtrace without truncation
+</ParamField>
+
+<ParamField path="--grep" type="pattern">
+  Filter backtrace lines by pattern (supports regular expressions)
+</ParamField>
+
+<ParamField path="--insensitive" type="flag">
+  **Alias:** `-i`
+  
+  Make grep search case-insensitive
+</ParamField>
+
+<ParamField path="--invert" type="flag">
+  **Alias:** `-v`
+  
+  Invert grep match (show lines that don't match)
+</ParamField>
+
+## Usage Examples
+
+### Basic Exception Trace
+
+```php
+>>> throw new Exception('Something went wrong');
+Exception with message 'Something went wrong'
+
+>>> wtf
+```
+
+<Tabs>
+  <Tab title="Output">
+    ```
+    Exception with message 'Something went wrong'
+    --
+     0: {main}()
+     1: Psy\Shell->execute()
+     2: Psy\ExecutionLoop\Loop->run()  
+     3: eval()
+     4: throw new Exception('Something went wrong')
+    ```
+  </Tab>
+</Tabs>
+
+### Show More Lines
+
+Add question marks or exclamation points for more detail:
+
+```php
+>>> wtf ?
+>>> wtf ??
+>>> wtf ????  
+>>> wtf ?!?!?!?
+```
+
+Each `?` or `!` doubles the number of lines shown:
+- `wtf` → 8 lines
+- `wtf ?` → 16 lines
+- `wtf ??` → 32 lines
+- `wtf ???` → 64 lines
+- etc.
+
+<Tabs>
+  <Tab title="Example">
+    ```php
+    >>> wtf ???
+    Exception with message 'Database connection failed'
+    --
+      0: {main}()
+      1: require('/app/index.php')
+      2: App\Bootstrap::init()
+      3: App\Database::connect()
+      4: PDO->__construct()
+      ... (64 lines of backtrace)
+    ```
+  </Tab>
+</Tabs>
+
+### Show Complete Trace
+
+```php
+>>> wtf -a
+>>> wtf --all
+```
+
+Shows every single line of the backtrace without truncation.
+
+### Show Nested Exceptions
+
+If exceptions have previous exceptions, `wtf` shows all of them:
+
+```php
+>>> try {
+...     throw new RuntimeException('Inner error');
+... } catch (Exception $e) {
+...     throw new Exception('Outer error', 0, $e);
+... }
+Exception with message 'Outer error'
+
+>>> wtf
+```
+
+<Tabs>
+  <Tab title="Output">
+    ```
+    Exception with message 'Outer error'
+    --
+     0: {main}()
+     1: throw new Exception('Outer error')
+    
+    RuntimeException with message 'Inner error'  
+    --
+     0: {main}()
+     1: throw new RuntimeException('Inner error')
+    ```
+  </Tab>
+</Tabs>
+
+Each exception in the chain is displayed separately.
+
+### Filter Backtrace
+
+```php
+>>> wtf --grep /App\\/
+>>> wtf --grep /Database/ -i
+```
+
+Shows only backtrace lines matching the pattern.
+
+### Real-World Example
+
+```php
+>>> $pdo = new PDO('invalid:dsn');
+PDOException with message 'could not find driver'
+
+>>> wtf
+PDOException with message 'could not find driver'
+--
+  0: PDO->__construct('invalid:dsn')
+  1: eval()
+  2: Psy\Shell->execute()
+
+>>> wtf ??
+PDOException with message 'could not find driver'
+--
+  0: {main}()
+  1: require('/app/index.php')  
+  2: Psy\Shell::debug()
+  3: Psy\Shell->__construct()
+  4: Psy\Shell->run()
+  5: Psy\ExecutionLoop\Loop->run()
+  ... (32 lines total)
+```
+
+## Line Count Logic
+
+The number of lines shown is calculated as:
+
+```
+lines = max(3, 2^(incredulity_length + 1))
+```
+
+- `wtf` (length 0) → `2^1 = 2`, but minimum is 3, so **8 lines**
+- `wtf ?` (length 1) → `2^2 = 4` → **16 lines**
+- `wtf ??` (length 2) → `2^3 = 8` → **32 lines**
+- `wtf ???` (length 3) → `2^4 = 16` → **64 lines**
+
+<Note>
+  If the trace is only slightly longer than the limit, `wtf` will show the entire trace. For example, if the trace has 35 lines and you request 32, all 35 will be shown to avoid hiding just a few lines.
+</Note>
+
+## Smart Truncation
+
+When the trace is truncated, you'll see a helpful message:
+
+```php
+>>> wtf
+... (trace shown)
+
+Use wtf -a to see 45 more lines
+```
+
+This reminds you how to see the full trace.
+
+## Backtrace Format
+
+Each line shows:
+- **Line number** - Position in the stack
+- **Class/Function** - What was being called
+- **File and line** - Where it was called from (when available)
+
+```
+  5: App\UserController->store()
+     at /app/src/Controllers/UserController.php:42
+  6: Illuminate\Routing\Controller->callAction()
+     at /vendor/laravel/framework/src/Routing/Controller.php:54  
+```
+
+## Combine with Other Commands
+
+### View Exception Context
+
+```php
+>>> someCode()  // Exception!
+>>> wtf         // See where it happened
+>>> show --ex   // View the source code at that location
+```
+
+### Navigate the Stack
+
+```php
+>>> wtf         // See the backtrace
+>>> show --ex 1 // View line where exception was thrown
+>>> show --ex 3 // View the caller  
+>>> show --ex 5 // View higher up the stack
+```
+
+### Filter and Inspect
+
+```php
+>>> wtf --grep /MyApp/  // Find relevant trace lines
+>>> show --ex 4         // Inspect that specific level
+```
+
+## Common Patterns
+
+### Quick Debug
+
+```php
+>>> someFunction()  
+Exception!
+>>> wtf             // What happened?
+>>> wtf ??          // Need more context
+>>> show --ex       // Let me see the code
+```
+
+### Deep Investigation
+
+```php
+>>> wtf -a                      // Full trace
+>>> wtf --grep /Controller/     // Focus on controllers  
+>>> show --ex 5                 // Examine specific level
+```
+
+### Compare Exceptions
+
+```php
+>>> firstAttempt()
+Exception A
+>>> wtf --grep /Database/
+
+>>> secondAttempt()  
+Exception B
+>>> wtf --grep /Database/
+```
+
+## Tips
+
+<Tip>
+  Express your frustration through syntax:
+  ```php
+  >>> wtf?!?!?!?!?!
+  ```
+  
+  The more incredulous you are, the more information you get!
+</Tip>
+
+<Tip>
+  Combine with `show --ex` for a complete debugging workflow:
+  ```php
+  >>> wtf        # Overview of what happened
+  >>> show --ex  # Source code where it happened
+  ```
+</Tip>
+
+<Tip>
+  Use grep to focus on your code:
+  ```php
+  >>> wtf --grep "/^(?!Psy|Symfony|Illuminate)/"
+  ```
+  
+  Filters out framework noise and shows only your application's trace.
+</Tip>
+
+<Warning>
+  Only the **last** exception is shown. If you catch and handle an exception, it won't appear in `wtf`:
+  ```php
+  >>> try { throw new Exception('Caught'); } catch (Exception $e) {}
+  >>> wtf  # Shows nothing - exception was caught
+  ```
+</Warning>
+
+## See Also
+
+- [trace](/commands/trace) - Show the current call stack
+- [show --ex](/commands/show#exception-context) - View exception source code
+- [whereami](/commands/whereami) - Show where you are in code

@@ -1,0 +1,166 @@
+---
+title: Introduction to PsySH
+description: A runtime developer console, interactive debugger and REPL for PHP
+---
+
+PsySH is a runtime developer console, interactive debugger and [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop) for PHP. Think of it as an interactive playground where you can experiment with PHP code, debug applications, and explore your codebase in real-time.
+
+## What is PsySH?
+
+PsySH provides a powerful interactive shell for PHP that allows you to:
+
+- Execute PHP code interactively and see results immediately
+- Debug your application at runtime by dropping into a shell
+- Inspect variables, objects, and application state
+- Explore classes, methods, and functions with built-in documentation
+- Test code snippets without creating temporary files
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Get PsySH installed on your system via Composer, PHAR, or global install
+  </Card>
+  
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Start using PsySH in minutes with practical examples
+  </Card>
+  
+  <Card title="Commands" icon="terminal" href="/commands/overview">
+    Explore built-in commands for inspecting code and managing your session
+  </Card>
+  
+  <Card title="Configuration" icon="gear" href="/configuration/overview">
+    Customize PsySH with themes, history settings, and more
+  </Card>
+</CardGroup>
+
+## Key Features
+
+### Interactive REPL
+
+Run PHP code interactively and see results immediately:
+
+```php
+>>> $greeting = "Hello, PsySH!"
+=> "Hello, PsySH!"
+>>> echo strtoupper($greeting)
+HELLO, PSYSH!
+=> null
+```
+
+### Runtime Debugging
+
+Drop into a debug shell anywhere in your code:
+
+```php
+foreach ($items as $item) {
+    \Psy\debug(get_defined_vars());
+    // Interactive shell opens here with access to $items, $item, etc.
+}
+```
+
+### Code Introspection
+
+Explore your code with built-in commands:
+
+```php
+>>> ls -la \Psy\Shell
+Class Methods:
+  __construct   addInput      all           doRun
+  find          get           getHelp       has
+  run           setIncludes   ...
+```
+
+### PHP Manual Integration
+
+Access PHP documentation right from the shell:
+
+```php
+>>> doc array_map
+Function: array_map — Applies the callback to the elements of the given arrays
+
+Synopsis:
+  array_map(callable $callback, array $array, array ...$arrays): array
+```
+
+## Why PsySH?
+
+<Note>
+  PsySH is built on top of Symfony Console and nikic/php-parser, providing a robust and reliable development tool.
+</Note>
+
+- **No setup required**: Just install and start using it immediately
+- **Framework integration**: Works seamlessly with Laravel, Symfony, Drupal, and more
+- **Powerful debugging**: Set breakpoints with a single function call
+- **Tab completion**: Smart autocomplete for classes, functions, and variables
+- **History management**: Your command history is saved between sessions
+
+## Use Cases
+
+### Quick Experimentation
+
+Test PHP features or library functions without creating test files:
+
+```php
+>>> $data = json_decode('{"name":"John","age":30}', true)
+=> [
+     "name" => "John",
+     "age" => 30,
+   ]
+```
+
+### Application Debugging
+
+Inspect application state during runtime:
+
+```php
+class UserController {
+    public function show($id) {
+        $user = User::find($id);
+        \Psy\debug(get_defined_vars(), $this);
+        return view('user.show', compact('user'));
+    }
+}
+```
+
+### Learning and Teaching
+
+Perfect for learning PHP or teaching concepts interactively:
+
+```php
+>>> class Person {
+...     public function __construct(public string $name) {}
+... }
+=> null
+>>> $person = new Person("Alice")
+=> Person {#123
+     +name: "Alice",
+   }
+```
+
+## Requirements
+
+PsySH requires:
+
+- PHP 7.4 or higher (PHP 8.0+ recommended)
+- The `json` extension (usually enabled by default)
+- The `tokenizer` extension (usually enabled by default)
+
+<Tip>
+  For the best experience, install the `pcntl` and `posix` extensions. They enable features like command history and signal handling.
+</Tip>
+
+## Next Steps
+
+<Steps>
+  <Step title="Install PsySH">
+    Follow the [installation guide](/installation) to get PsySH set up on your system.
+  </Step>
+  
+  <Step title="Try the Quick Start">
+    Work through the [quick start guide](/quickstart) to learn the basics.
+  </Step>
+  
+  <Step title="Explore Commands">
+    Check out the [commands reference](/commands/overview) to discover what PsySH can do.
+  </Step>
+</Steps>

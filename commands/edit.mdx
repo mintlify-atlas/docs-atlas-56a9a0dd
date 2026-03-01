@@ -1,0 +1,380 @@
+---
+title: edit Command
+description: Open an external editor for writing and executing PHP code
+---
+
+The `edit` command opens an external text editor, allowing you to write or modify PHP code in your preferred editor, then optionally execute it within PsySH.
+
+## Syntax
+
+```php
+edit [options] [file]
+```
+
+## Arguments
+
+<ParamField path="file" type="string">
+  The file path to edit. Can be:
+  - An absolute path: `/path/to/file.php`
+  - A relative path: `./script.php`
+  - A variable containing a path: `$filename`
+  
+  If not provided, edits a temporary file that is deleted after execution.
+</ParamField>
+
+## Options
+
+<ParamField path="--exec" type="flag">
+  **Alias:** `-e`
+  
+  Execute the file content after editing. This is the default when no file argument is provided.
+</ParamField>
+
+<ParamField path="--no-exec" type="flag">
+  **Alias:** `-E`
+  
+  Do not execute the file content after editing. This is the default when a file path is provided.
+</ParamField>
+
+## Configuration
+
+The `edit` command uses the `EDITOR` environment variable to determine which editor to launch.
+
+### Setting Your Editor
+
+<Tabs>
+  <Tab title="Linux/macOS">
+    ```bash
+    export EDITOR=vim
+    export EDITOR=nano
+    export EDITOR=emacs
+    export EDITOR="code --wait"  # VS Code
+    export EDITOR="subl --wait"  # Sublime Text
+    ```
+    
+    Add to `~/.bashrc`, `~/.zshrc`, or `~/.profile` to make permanent.
+  </Tab>
+  <Tab title="Windows">
+    ```cmd
+    set EDITOR=notepad
+    set EDITOR=code --wait
+    ```
+    
+    Or set via System Properties → Environment Variables.
+  </Tab>
+</Tabs>
+
+<Note>
+  If `EDITOR` is not set, PsySH defaults to `nano`.
+</Note>
+
+## Usage Examples
+
+### Edit and Execute Temporary Code
+
+```php
+>>> edit
+```
+
+This:
+1. Creates a temporary file
+2. Opens your editor
+3. Waits for you to save and close
+4. Executes the code
+5. Deletes the temporary file
+
+<Tabs>
+  <Tab title="Workflow">
+    ```php
+    >>> edit
+    # Editor opens with empty temp file
+    # You write:
+    #   $users = ['Alice', 'Bob', 'Charlie'];
+    #   foreach ($users as $user) {
+    #       echo "Hello, $user!\n";
+    #   }
+    # Save and close editor
+    
+    Hello, Alice!
+    Hello, Bob!
+    Hello, Charlie!
+    >>>
+    ```
+  </Tab>
+</Tabs>
+
+### Edit an Existing File
+
+```php
+>>> edit ./script.php
+>>> edit /path/to/file.php
+```
+
+By default, this opens the file but does **not** execute it after editing (use `--exec` to execute).
+
+### Edit and Execute a File
+
+```php
+>>> edit --exec ./script.php
+>>> edit -e /path/to/file.php
+```
+
+Opens the file, and after you save and close, executes it within the current PsySH session.
+
+### Edit a File Without Execution
+
+```php
+>>> edit --no-exec
+```
+
+Edits a temporary file but does not execute it (useful for just writing code snippets).
+
+### Edit Using a Variable Path
+
+```php
+>>> $configFile = './config.php'
+>>> edit $configFile
+```
+
+The variable must contain a string path.
+
+<Warning>
+  Variables must be defined:
+  ```php
+  >>> edit $undefined  # Error: Undefined variable
+  ```
+</Warning>
+
+## Default Behavior
+
+### Without File Argument
+
+Defaults to `--exec` (execute after editing):
+
+```php
+>>> edit
+# Equivalent to: edit --exec
+```
+
+### With File Argument  
+
+Defaults to `--no-exec` (do not execute):
+
+```php
+>>> edit ./file.php
+# Equivalent to: edit --no-exec ./file.php
+```
+
+To execute, explicitly add `--exec`:
+
+```php
+>>> edit --exec ./file.php
+```
+
+## Practical Use Cases
+
+### Rapid Prototyping
+
+```php
+>>> edit
+# Write a quick function in your editor:
+#   function greet($name) {
+#       return "Hello, $name!";
+#   }
+# Save and close
+
+>>> greet('World')
+= "Hello, World!"
+```
+
+### Multi-Line Code
+
+Instead of typing complex code in the REPL:
+
+```php
+>>> edit
+# Write:
+#   class Calculator {
+#       public function add($a, $b) {
+#           return $a + $b;
+#       }
+#       public function multiply($a, $b) {
+#           return $a * $b;
+#       }
+#   }
+#   $calc = new Calculator();
+# Save and close
+
+>>> $calc->add(5, 3)
+= 8
+```
+
+### Edit Configuration
+
+```php
+>>> edit ~/.config/psysh/config.php
+```
+
+Edit your PsySH configuration file.
+
+### Load External Code
+
+```php
+>>> edit --exec ./helpers.php
+```
+
+Edit and load helper functions.
+
+### Interactive Script Development
+
+```php
+>>> edit script.php         # Edit the script
+>>> edit --exec script.php  # Test it
+>>> edit script.php         # Make changes
+>>> edit --exec script.php  # Test again
+```
+
+## Editor Integration
+
+### VS Code
+
+```bash
+export EDITOR="code --wait"
+```
+
+The `--wait` flag ensures the editor waits for you to close the file before continuing.
+
+### Sublime Text
+
+```bash
+export EDITOR="subl --wait"
+```
+
+### Vim
+
+```bash
+export EDITOR=vim
+```
+
+Vim waits by default.
+
+### Emacs
+
+```bash
+export EDITOR="emacs -nw"  # Terminal mode
+export EDITOR="emacsclient" # Using emacs server
+```
+
+### Nano
+
+```bash
+export EDITOR=nano
+```
+
+Nano is the default if `EDITOR` is not set.
+
+## Temporary File Location
+
+When no file is specified, temporary files are created in:
+
+- **Linux/macOS:** `~/.local/share/psysh/`
+- **Windows:** `%APPDATA%/PsySH/`
+
+Filenames follow the pattern: `psysh-edit-command-XXXXXX`
+
+<Note>
+  Temporary files are automatically deleted after execution or if you close PsySH.
+</Note>
+
+## Error Handling
+
+### Conflicting Options
+
+```php
+>>> edit --exec --no-exec file.php
+InvalidArgumentException: The --exec and --no-exec flags are mutually exclusive
+```
+
+### Undefined Variable
+
+```php
+>>> edit $nonexistent
+InvalidArgumentException: Undefined variable: nonexistent
+```
+
+### File Read Error
+
+If the file cannot be read after editing:
+
+```php
+UnexpectedValueException: Reading /path/to/file.php returned false
+```
+
+## Tips
+
+<Tip>
+  Use `edit` for complex multi-line code:
+  ```php
+  >>> edit  # Much easier than typing in the REPL
+  ```
+  
+  Your editor provides:
+  - Syntax highlighting
+  - Auto-completion  
+  - Multiple cursors
+  - Find and replace
+</Tip>
+
+<Tip>
+  Create a library of helper functions:
+  ```php
+  # In helpers.php:
+  function dd($var) {
+      var_dump($var);
+      exit;
+  }
+  
+  >>> edit --exec helpers.php
+  >>> dd($something)  # Now available
+  ```
+</Tip>
+
+<Tip>
+  Test code snippets before committing:
+  ```php
+  >>> edit  # Try out some code
+  # If it works:
+  >>> history --tail 5 --save snippet.php
+  ```
+</Tip>
+
+<Warning>
+  Make sure your editor is configured to wait:
+  ```bash
+  # Bad: Editor returns immediately
+  export EDITOR=code
+  
+  # Good: Editor waits for file to close  
+  export EDITOR="code --wait"
+  ```
+  
+  Without `--wait`, PsySH may try to execute an empty or incomplete file.
+</Warning>
+
+## Keyboard Workflow
+
+Typical workflow when using `edit`:
+
+1. Type `edit` in PsySH
+2. Press Enter
+3. Editor opens
+4. Write your code
+5. Save the file
+6. Close the editor/tab
+7. Code executes in PsySH
+8. Continue working with defined functions/classes
+
+## See Also
+
+- [history](/commands/history) - Review and replay previous commands
+- [show](/commands/show) - View source code of existing functions

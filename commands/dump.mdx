@@ -1,0 +1,435 @@
+---
+title: dump Command
+description: Dump objects and primitives with detailed, formatted output
+---
+
+The `dump` command displays a detailed, formatted representation of any object or primitive value. It's like `var_dump()` but significantly more readable and powerful.
+
+## Syntax
+
+```php
+dump [options] <target>
+```
+
+## Arguments
+
+<ParamField path="target" type="code" required>
+  An object, array, primitive, or expression to dump
+</ParamField>
+
+## Options
+
+<ParamField path="--depth" type="integer" default="10">
+  Maximum depth to traverse when dumping nested structures. Deeper levels will show ellipsis (`...`).
+</ParamField>
+
+<ParamField path="--all" type="flag">
+  **Alias:** `-a`
+  
+  Include private and protected properties when dumping objects.
+</ParamField>
+
+## Usage Examples
+
+### Dump a Variable
+
+```php
+>>> $name = 'Alice'
+>>> dump $name
+```
+
+<Tabs>
+  <Tab title="Output">
+    ```
+    "Alice"
+    ```
+  </Tab>
+</Tabs>
+
+### Dump an Array
+
+```php
+>>> $data = ['name' => 'Bob', 'age' => 30, 'active' => true]
+>>> dump $data
+```
+
+<Tabs>
+  <Tab title="Output">
+    ```php
+    [
+      "name" => "Bob",
+      "age" => 30,
+      "active" => true,
+    ]
+    ```
+  </Tab>
+</Tabs>
+
+### Dump an Object
+
+```php
+>>> $date = new DateTime('2024-01-15')
+>>> dump $date
+```
+
+<Tabs>
+  <Tab title="Output">
+    ```php
+    DateTime {#123
+      +date: "2024-01-15 00:00:00.000000",
+      +timezone_type: 3,
+      +timezone: "UTC",
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Dump with Private Properties
+
+```php
+>>> dump -a $object
+>>> dump --all $object
+```
+
+<Tabs>
+  <Tab title="Example">
+    ```php
+    class User {
+        public $name = 'Alice';
+        protected $email = 'alice@example.com';
+        private $password = 'secret';
+    }
+    
+    >>> $user = new User()
+    >>> dump $user
+    User {#456
+      +name: "Alice",
+    }
+    
+    >>> dump -a $user  
+    User {#456
+      +name: "Alice",
+      #email: "alice@example.com",
+      -password: "secret",
+    }
+    ```
+  </Tab>
+</Tabs>
+
+Notice the visibility prefixes:
+- `+` for public
+- `#` for protected  
+- `-` for private
+
+### Dump Nested Structures
+
+```php
+>>> $complex = [
+...     'user' => ['name' => 'Alice', 'meta' => ['role' => 'admin']],
+...     'settings' => ['theme' => 'dark']
+... ]
+>>> dump $complex
+```
+
+<Tabs>
+  <Tab title="Output">
+    ```php
+    [
+      "user" => [
+        "name" => "Alice",
+        "meta" => [
+          "role" => "admin",
+        ],
+      ],
+      "settings" => [
+        "theme" => "dark",
+      ],
+    ]
+    ```
+  </Tab>
+</Tabs>
+
+### Control Depth
+
+```php
+>>> dump --depth=2 $deeplyNested
+>>> dump --depth=1 $complex
+```
+
+<Tabs>
+  <Tab title="Example">
+    ```php
+    >>> $deep = ['a' => ['b' => ['c' => ['d' => ['e' => 'value']]]]]
+    
+    >>> dump --depth=2 $deep
+    [
+      "a" => [
+        "b" => [...],
+      ],
+    ]
+    
+    >>> dump --depth=5 $deep
+    [
+      "a" => [
+        "b" => [
+          "c" => [
+            "d" => [
+              "e" => "value",
+            ],
+          ],
+        ],
+      ],
+    ]
+    ```
+  </Tab>
+</Tabs>
+
+### Dump Expressions
+
+You can dump the result of any expression:
+
+```php
+>>> dump array_merge(['a' => 1], ['b' => 2])
+[
+  "a" => 1,
+  "b" => 2,
+]
+
+>>> dump $object->getSettings()
+>>> dump SomeClass::staticMethod()
+```
+
+### Dump the Last Result
+
+Use the special `$_` variable:
+
+```php
+>>> 2 + 2
+= 4
+>>> dump $_
+4
+
+>>> new DateTime()
+= DateTime {...}
+>>> dump $_
+DateTime {#789 ...}
+```
+
+## Output Formatting
+
+The `dump` command provides rich formatting:
+
+### Primitives
+
+```php
+>>> dump 42
+42
+
+>>> dump 3.14  
+3.14
+
+>>> dump true
+true
+
+>>> dump null
+null
+```
+
+### Strings
+
+```php
+>>> dump "Hello\nWorld"
+"Hello\nWorld"
+
+>>> dump 'Long string...'
+"Long string..."
+```
+
+### Arrays
+
+Arrays show keys and values with proper indentation:
+
+```php
+>>> dump [1, 2, 3]
+[
+  0 => 1,
+  1 => 2,
+  2 => 3,
+]
+```
+
+### Objects
+
+Objects show:
+- Class name
+- Object ID  
+- Properties with visibility indicators
+- Proper nesting
+
+```php
+ClassName {#123
+  +publicProp: "value",
+  #protectedProp: 42,
+  -privateProp: [...],
+}
+```
+
+### Resources
+
+```php
+>>> $fp = fopen('php://memory', 'r')
+>>> dump $fp
+resource(stream) {#45}
+```
+
+### Circular References
+
+Circular references are detected and marked:
+
+```php
+>>> $a = ['name' => 'A']
+>>> $b = ['name' => 'B', 'ref' => &$a]
+>>> $a['ref'] = &$b
+>>> dump $a
+[
+  "name" => "A",
+  "ref" => [
+    "name" => "B",  
+    "ref" => [circular reference],
+  ],
+]
+```
+
+## Comparison with var_dump
+
+<Tabs>
+  <Tab title="dump">
+    ```php
+    >>> dump $user
+    User {#123
+      +name: "Alice",
+      +email: "alice@example.com",
+      +roles: [
+        0 => "admin",
+        1 => "user",
+      ],
+    }
+    ```
+  </Tab>
+  <Tab title="var_dump">
+    ```php
+    >>> var_dump($user)
+    object(User)#123 (3) {
+      ["name"]=>
+      string(5) "Alice"
+      ["email"]=>
+      string(19) "alice@example.com"
+      ["roles"]=>
+      array(2) {
+        [0]=>
+        string(5) "admin"
+        [1]=>
+        string(4) "user"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+The `dump` output is more readable with better formatting and color highlighting.
+
+## Magic Variables
+
+After dumping an object, magic variables are set:
+
+```php
+>>> dump $user
+>>> echo $__class
+User
+>>> echo $__namespace
+App\Models
+```
+
+## Common Use Cases
+
+### Inspect API Responses
+
+```php
+>>> $response = $client->get('/api/users')
+>>> dump $response->getBody()
+```
+
+### Debug Complex Data Structures
+
+```php
+>>> dump $request->all()
+>>> dump $_SESSION
+>>> dump $_SERVER
+```
+
+### Examine Object State
+
+```php
+>>> $model = User::find(1)  
+>>> dump -a $model
+```
+
+Shows all properties including private ORM internals.
+
+### Compare Values
+
+```php
+>>> dump $expected
+>>> dump $actual
+```
+
+### Inspect Closures
+
+```php
+>>> $closure = function($x) { return $x * 2; };
+>>> dump $closure
+Closure {#234
+  +parameter: [
+    "$x" => "<required>",
+  ],
+}
+```
+
+## Tips
+
+<Tip>
+  Use `dump $_` to inspect the last expression result:
+  ```php
+  >>> $obj->complexMethod()->chain()->calls()
+  >>> dump $_  // See what was returned
+  ```
+</Tip>
+
+<Tip>
+  Combine with `--all` to debug private state:
+  ```php
+  >>> dump -a $eloquentModel
+  ```
+  Reveals internal attributes, relations, etc.
+</Tip>
+
+<Tip>
+  Adjust depth for large objects:
+  ```php
+  >>> dump --depth=3 $bigObject  // Less detail
+  >>> dump --depth=20 $bigObject // More detail
+  ```
+</Tip>
+
+<Warning>
+  Very large objects may produce overwhelming output. Start with a shallow depth:
+  ```php
+  >>> dump --depth=1 $huge
+  ```
+</Warning>
+
+## See Also
+
+- [ls](/commands/ls) - List object properties and methods
+- [doc](/commands/doc) - Read object documentation  
+- [show](/commands/show) - View object's source code

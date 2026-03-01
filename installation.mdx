@@ -1,0 +1,314 @@
+---
+title: Installation
+description: Install PsySH using Composer, download the PHAR, or set up a global installation
+---
+
+PsySH can be installed in several ways depending on your needs. Choose the method that works best for your workflow.
+
+## Requirements
+
+Before installing PsySH, ensure your system meets these requirements:
+
+- **PHP 7.4 or higher** (PHP 8.0+ recommended)
+- **Required extensions**:
+  - `ext-json` (usually enabled by default)
+  - `ext-tokenizer` (usually enabled by default)
+
+<Note>
+  PsySH works with PHP 7.4 through PHP 8.x. If you're using an older version, you'll need to upgrade PHP first.
+</Note>
+
+### Optional Extensions
+
+For the best experience, consider installing these optional extensions:
+
+<CodeGroup>
+```bash Debian/Ubuntu
+sudo apt-get install php-pcntl php-posix
+```
+
+```bash macOS (Homebrew)
+# Usually included with PHP installations
+php -m | grep -E 'pcntl|posix'
+```
+
+```bash Check Extensions
+php -r "echo extension_loaded('pcntl') ? 'pcntl: OK' : 'pcntl: missing'; echo PHP_EOL;"
+php -r "echo extension_loaded('posix') ? 'posix: OK' : 'posix: missing'; echo PHP_EOL;"
+```
+</CodeGroup>
+
+<Tip>
+  The `pcntl` and `posix` extensions enable better signal handling, job control, and make PsySH significantly more responsive.
+</Tip>
+
+## Installation Methods
+
+### Method 1: Composer (Recommended)
+
+The easiest way to install PsySH is via Composer.
+
+<Steps>
+  <Step title="Install via Composer">
+    Add PsySH to your project or install it globally:
+
+    <CodeGroup>
+    ```bash Project Dependency
+    composer require --dev psy/psysh
+    ```
+
+    ```bash Global Installation
+    composer global require psy/psysh
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Run PsySH">
+    After installation, you can run PsySH:
+
+    <CodeGroup>
+    ```bash Project Installation
+    ./vendor/bin/psysh
+    ```
+
+    ```bash Global Installation
+    psysh
+    ```
+    </CodeGroup>
+  </Step>
+</Steps>
+
+<Note>
+  When installed as a project dependency, PsySH automatically detects and uses your project's autoloader, giving you access to all your classes.
+</Note>
+
+### Method 2: Download PHAR
+
+For a standalone installation, download the pre-compiled PHAR file.
+
+<Steps>
+  <Step title="Download the PHAR">
+    Download the latest PsySH PHAR:
+
+    ```bash
+    wget https://psysh.org/psysh
+    chmod +x psysh
+    ```
+
+    Or using curl:
+
+    ```bash
+    curl -L https://psysh.org/psysh -o psysh
+    chmod +x psysh
+    ```
+  </Step>
+
+  <Step title="Move to System Path (Optional)">
+    For global access, move the PHAR to your system path:
+
+    ```bash
+    sudo mv psysh /usr/local/bin/psysh
+    ```
+
+    Or to a user-local bin directory:
+
+    ```bash
+    mkdir -p ~/bin
+    mv psysh ~/bin/psysh
+    # Add ~/bin to your PATH in ~/.bashrc or ~/.zshrc if not already there
+    ```
+  </Step>
+
+  <Step title="Verify Installation">
+    Test that PsySH is working:
+
+    ```bash
+    psysh --version
+    ```
+
+    You should see output like:
+
+    ```
+    Psy Shell v0.12.20 (PHP 8.2.0 — cli)
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+  The PHAR installation is completely self-contained and doesn't require Composer. It's perfect for servers or environments where you want a minimal footprint.
+</Tip>
+
+### Method 3: Manual Installation
+
+For development or contributing to PsySH:
+
+<Steps>
+  <Step title="Clone the Repository">
+    ```bash
+    git clone https://github.com/bobthecow/psysh.git
+    cd psysh
+    ```
+  </Step>
+
+  <Step title="Install Dependencies">
+    ```bash
+    composer install
+    ```
+  </Step>
+
+  <Step title="Run from Source">
+    ```bash
+    ./bin/psysh
+    ```
+  </Step>
+</Steps>
+
+## Updating PsySH
+
+### Update Composer Installation
+
+<CodeGroup>
+```bash Project Dependency
+composer update psy/psysh
+```
+
+```bash Global Installation
+composer global update psy/psysh
+```
+</CodeGroup>
+
+### Update PHAR Installation
+
+If you installed PsySH via PHAR, you can use the built-in self-update command:
+
+```bash
+psysh --self-update
+```
+
+<Note>
+  The `--self-update` option is only available when running PsySH from a PHAR file.
+</Note>
+
+## PHP Manual Installation
+
+For the best experience, download the PHP manual for offline documentation access:
+
+```bash
+psysh --update-manual
+```
+
+For a specific language:
+
+```bash
+psysh --update-manual=es  # Spanish
+psysh --update-manual=fr  # French
+psysh --update-manual=ja  # Japanese
+```
+
+<Tip>
+  Having the PHP manual installed allows you to use the `doc` command to view function and class documentation directly in PsySH.
+</Tip>
+
+## Verifying Your Installation
+
+Once installed, verify everything is working correctly:
+
+<Steps>
+  <Step title="Check Version">
+    ```bash
+    psysh --version
+    ```
+  </Step>
+
+  <Step title="View Environment Info">
+    ```bash
+    psysh --info
+    ```
+
+    This displays detailed information about your PsySH configuration, including:
+    - PHP version and extensions
+    - Configuration file locations
+    - History settings
+    - Manual database status
+    - Available features
+  </Step>
+
+  <Step title="Test Interactive Mode">
+    Start PsySH and run a simple command:
+
+    ```bash
+    psysh
+    ```
+
+    Then try:
+
+    ```php
+    >>> echo "Hello, PsySH!"
+    Hello, PsySH!
+    => null
+    ```
+  </Step>
+</Steps>
+
+## Command-Line Options
+
+PsySH supports various command-line options:
+
+```bash
+psysh [options] [--] [<files>...]
+```
+
+### Common Options
+
+| Option | Description |
+|--------|-------------|
+| `-h, --help` | Display help message |
+| `-V, --version` | Display PsySH version |
+| `--info` | Show environment and configuration info |
+| `-c, --config=FILE` | Use alternate config file |
+| `--cwd=PATH` | Use alternate working directory |
+| `--color` / `--no-color` | Force or disable colors |
+| `-i, --interactive` | Force interactive mode |
+| `-n, --no-interactive` | Run without interactive input |
+| `--warm-autoload` | Enable autoload warming for better tab completion |
+
+### Loading Files
+
+You can load PHP files before starting the shell:
+
+```bash
+psysh config.php bootstrap.php
+```
+
+This is useful for:
+- Loading application bootstrappers
+- Setting up test environments
+- Importing utility functions
+
+## Project Trust
+
+When PsySH detects a local version in your project, it may prompt you about trust:
+
+```bash
+# Trust the current project
+psysh --trust-project
+
+# Explicitly don't trust (run in restricted mode)
+psysh --no-trust-project
+```
+
+<Warning>
+  PsySH will ask for confirmation before using a project-local version to protect against potentially malicious code. Only trust projects you own or from sources you trust.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Learn the basics and start using PsySH
+  </Card>
+  
+  <Card title="Configuration" icon="gear" href="/configuration/overview">
+    Customize PsySH with your preferred settings
+  </Card>
+</CardGroup>

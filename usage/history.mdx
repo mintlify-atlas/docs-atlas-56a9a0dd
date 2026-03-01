@@ -1,0 +1,384 @@
+---
+title: History Management
+description: Manage, search, and replay command history in PsySH
+---
+
+PsySH maintains a persistent history of all commands you execute, making it easy to recall and replay previous work.
+
+## History File Location
+
+History is stored in:
+
+<Tabs>
+  <Tab title="Default">
+    ```
+    ~/.config/psysh/psysh_history
+    ```
+    
+    or
+    
+    ```
+    ~/.psysh/psysh_history
+    ```
+  </Tab>
+  
+  <Tab title="Custom Location">
+    Configure a custom history file in `config.php`:
+    
+    ```php
+    <?php
+    return [
+        'historyFile' => '/path/to/my/history',
+    ];
+    ```
+  </Tab>
+</Tabs>
+
+## Using the History Command
+
+The `history` command (alias: `hist`) provides powerful history management:
+
+```php
+>>> history
+# Shows all history entries
+```
+
+### Viewing History
+
+<Steps>
+  <Step title="Show All History">
+    ```php
+    >>> history
+    ```
+    
+    Displays all previous commands with line numbers:
+    
+    ```
+    1  $name = 'World'
+    2  echo "Hello, {$name}!"
+    3  $numbers = [1, 2, 3, 4, 5]
+    4  array_sum($numbers)
+    ```
+  </Step>
+  
+  <Step title="Show Specific Range">
+    Use `--show` to display a specific range:
+    
+    ```php
+    >>> history --show 5..10
+    ```
+    
+    Show a single line:
+    
+    ```php
+    >>> history --show 42
+    ```
+  </Step>
+  
+  <Step title="Show Recent History">
+    Use `--tail` to show the last N entries:
+    
+    ```php
+    >>> history --tail 10
+    ```
+    
+    Or use `--head` for the first N entries:
+    
+    ```php
+    >>> history --head 20
+    ```
+  </Step>
+</Steps>
+
+### Searching History
+
+Search through history with grep-style patterns:
+
+```php
+>>> history --grep array
+# Shows all lines containing "array"
+
+>>> history --grep '/[Bb]acon/'
+# Shows lines matching the regex pattern
+
+>>> history --grep array -i
+# Case-insensitive search
+
+>>> history --grep test -v
+# Invert match (show lines NOT containing "test")
+```
+
+<Tip>
+  Combine search with other options: `history --grep array --tail 50`
+</Tip>
+
+## History Display Options
+
+### Hide Line Numbers
+
+Use `--no-numbers` (or `-N`) to omit line numbers:
+
+```php
+>>> history --tail 5 --no-numbers
+$name = 'World'
+echo "Hello, {$name}!"
+$numbers = [1, 2, 3, 4, 5]
+array_sum($numbers)
+history
+```
+
+## Saving History
+
+Export history to a file:
+
+```php
+>>> history --save backup.php
+Saving history in backup.php...
+History saved.
+
+>>> history --tail 100 --save recent-commands.php
+# Save just the last 100 commands
+
+>>> history --grep array --save array-usage.php
+# Save only lines matching a pattern
+```
+
+<Note>
+  Saved history is plain text, perfect for creating scripts or documentation from your REPL sessions.
+</Note>
+
+## Replaying History
+
+Replay previous commands automatically:
+
+```php
+>>> history --show 5..10 --replay
+Replaying 6 lines of history
+# Executes commands 5 through 10
+
+>>> history --tail 3 --replay
+Replaying 3 lines of history
+# Executes the last 3 commands
+```
+
+<Warning>
+  You must specify a range with `--show`, `--head`, or `--tail` before replaying. This prevents accidentally replaying your entire history.
+</Warning>
+
+### Practical Replay Examples
+
+<Accordion title="Replay Recent Setup">
+  Replay your last 5 commands to re-establish context:
+  
+  ```php
+  >>> history --tail 5 --replay
+  ```
+</Accordion>
+
+<Accordion title="Replay Specific Operations">
+  Replay a specific sequence of commands:
+  
+  ```php
+  >>> history --show 42..45 --replay
+  ```
+</Accordion>
+
+<Accordion title="Replay Filtered Commands">
+  Replay only commands matching a pattern:
+  
+  ```php
+  >>> history --grep '$user' --replay
+  ```
+</Accordion>
+
+## Clearing History
+
+Remove all history entries:
+
+```php
+>>> history --clear
+History cleared.
+```
+
+<Warning>
+  Clearing history is permanent and cannot be undone. Consider saving a backup first with `history --save`.
+</Warning>
+
+## History Configuration
+
+Customize history behavior in your `config.php`:
+
+### History Size Limit
+
+Limit the number of entries stored:
+
+```php
+<?php
+return [
+    'historySize' => 5000,  // Default is unlimited (0)
+];
+```
+
+### Erase Duplicates
+
+Automatically remove duplicate entries:
+
+```php
+<?php
+return [
+    'eraseDuplicates' => true,
+];
+```
+
+With this enabled, if you run the same command multiple times, only the most recent occurrence is kept:
+
+```php
+>>> $x = 1
+>>> $y = 2
+>>> $x = 1  // This removes the earlier "$x = 1" from history
+>>> history
+1  $y = 2
+2  $x = 1
+```
+
+### Disable History
+
+Completely disable history:
+
+```php
+<?php
+return [
+    'historyFile' => false,
+];
+```
+
+## Readline Integration
+
+PsySH uses readline for history navigation:
+
+<Tabs>
+  <Tab title="Keyboard Shortcuts">
+    - **Up Arrow** / **Ctrl+P** - Previous command
+    - **Down Arrow** / **Ctrl+N** - Next command
+    - **Ctrl+R** - Reverse search (GNU readline)
+    - **Ctrl+S** - Forward search (GNU readline)
+  </Tab>
+  
+  <Tab title="Search">
+    Press `Ctrl+R` and start typing to search backwards:
+    
+    ```
+    (reverse-i-search)`arr': array_sum($numbers)
+    ```
+    
+    - Press `Ctrl+R` again to find the next match
+    - Press `Enter` to execute the command
+    - Press `Ctrl+G` to cancel the search
+  </Tab>
+</Tabs>
+
+<Note>
+  Reverse search availability depends on your readline library. It works with GNU readline but may not be available with libedit.
+</Note>
+
+## Privacy Features
+
+### Omit Commands from History
+
+Start a command with a space to prevent it from being saved:
+
+```php
+>>>  $secret = 'my-api-key'  # Note the leading space
+>>> history --tail 5
+# The $secret assignment won't appear
+```
+
+<Tip>
+  This is useful for commands containing sensitive data like API keys or passwords.
+</Tip>
+
+## Advanced Usage
+
+### Combining Options
+
+Mix and match options for powerful queries:
+
+```php
+# Find all array operations from the last 100 commands
+>>> history --tail 100 --grep array
+
+# Save recent database queries
+>>> history --grep '$db->' --tail 50 --save db-queries.php
+
+# Replay recent test setup
+>>> history --grep 'setUp' --show 0..50 --replay
+```
+
+### Extract Specific Patterns
+
+Find all variable assignments:
+
+```php
+>>> history --grep '/^\$\w+\s*=/' 
+```
+
+Find all function calls:
+
+```php
+>>> history --grep '/\w+\(/'
+```
+
+## History Source Code
+
+The history command is implemented in:
+
+- Command implementation: `src/Command/HistoryCommand.php:29`
+- Configuration methods: `src/Configuration.php:967-1045`
+- History file path: `src/Configuration.php:978`
+- History size: `src/Configuration.php:1012`
+- Erase duplicates: `src/Configuration.php:1032`
+
+## Troubleshooting
+
+### History Not Saving
+
+Check permissions on the history file:
+
+```bash
+ls -la ~/.config/psysh/psysh_history
+```
+
+Ensure the directory exists and is writable:
+
+```bash
+mkdir -p ~/.config/psysh
+chmod 755 ~/.config/psysh
+```
+
+### History File Corruption
+
+If history becomes corrupted, you can:
+
+1. Back up the current history:
+   ```bash
+   cp ~/.config/psysh/psysh_history ~/.config/psysh/psysh_history.bak
+   ```
+
+2. Clear the history:
+   ```php
+   >>> history --clear
+   ```
+
+3. Or manually delete the file:
+   ```bash
+   rm ~/.config/psysh/psysh_history
+   ```
+
+### Viewing History Location
+
+Find where your history is stored:
+
+```php
+>>> \Psy\info()['history']['history file']
+=> "~/.config/psysh/psysh_history"
+```
